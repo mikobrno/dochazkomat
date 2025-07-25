@@ -51,3 +51,14 @@ export interface FilterOptions {
   endDate?: string;
   filterType?: 'month' | 'year' | 'custom';
 }
+
+export interface Settings {
+  id: string;
+  companyName: string;
+  taxRate: number;
+  socialInsuranceRate: number;
+  healthInsuranceRate: number;
+  currency: string;
+  workingHoursPerDay: number;
+  workingDaysPerWeek: number;
+}

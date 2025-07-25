@@ -10,6 +10,7 @@ import { TimeHistory } from './components/Employee/TimeHistory';
 import { Reports } from './components/Admin/Reports';
 import { EmployeeManagement } from './components/Admin/EmployeeManagement';
 import { ProjectManagement } from './components/Admin/ProjectManagement';
+import { Settings } from './components/Settings/Settings';
 
 function App() {
   return (
@@ -48,6 +49,11 @@ function App() {
               <Route path="projects" element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <ProjectManagement />
+                </ProtectedRoute>
+              } />
+              <Route path="settings" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <Settings />
                 </ProtectedRoute>
               } />
             </Route>

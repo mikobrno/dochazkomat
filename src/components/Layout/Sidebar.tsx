@@ -6,7 +6,8 @@ import {
   Users, 
   BarChart3, 
   FolderOpen,
-  Building2
+  Building2,
+  Settings
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -17,6 +18,7 @@ const navItems = [
   { name: 'Reporty a přehledy', href: '/reports', icon: BarChart3, roles: ['admin'] },
   { name: 'Správa zaměstnanců', href: '/employees', icon: Users, roles: ['admin'] },
   { name: 'Správa projektů', href: '/projects', icon: FolderOpen, roles: ['admin'] },
+  { name: 'Nastavení', href: '/settings', icon: Settings, roles: ['admin'] },
 ];
 
 export const Sidebar: React.FC = () => {

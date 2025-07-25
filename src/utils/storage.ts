@@ -285,3 +285,21 @@ export const exportToCSV = (data: any[], filename: string): void => {
   link.click();
   document.body.removeChild(link);
 };
+
+export const getSettings = () => {
+  const settings = localStorage.getItem('settings');
+  return settings ? JSON.parse(settings) : {
+    id: 'settings-1',
+    companyName: 'Moje Firma',
+    taxRate: 15,
+    socialInsuranceRate: 6.5,
+    healthInsuranceRate: 4.5,
+    currency: 'CZK',
+    workingHoursPerDay: 8,
+    workingDaysPerWeek: 5
+  };
+};
+
+export const saveSettings = (settings: any) => {
+  localStorage.setItem('settings', JSON.stringify(settings));
+};
