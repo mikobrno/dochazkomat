@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthContextType } from '../types';
-import { getUsers, createUser } from '../utils/storage';
+import { authenticateUser, getCurrentUser, signOut, createUser } from '../utils/supabaseStorage';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -21,33 +21,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in (from localStorage)
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
+    // Check if user is already logged in via Supabase session
+    const checkUser = async () => {
       try {
-        setUser(JSON.parse(savedUser));
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
       } catch (error) {
-        console.error('Error parsing saved user:', error);
-        localStorage.removeItem('currentUser');
+        console.error('Error checking current user:', error);
+      } finally {
+        setIsLoading(false);
       }
-    }
-    setIsLoading(false);
+    };
+
+    checkUser();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
     try {
-      const users = getUsers();
-      const foundUser = users.find(u => 
-        u.email.toLowerCase() === email.toLowerCase() && 
-        u.password === password &&
-        u.isActive
-      );
+      const authenticatedUser = await authenticateUser(email, password);
       
-      if (foundUser) {
-        setUser(foundUser);
-        localStorage.setItem('currentUser', JSON.stringify(foundUser));
+      if (authenticatedUser) {
+        setUser(authenticatedUser);
         setIsLoading(false);
         return true;
       }
@@ -61,9 +57,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
+  const register = async (userData: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+  }): Promise<{ success: boolean; error?: string }> => {
+    setIsLoading(true);
+    
     try {
-      localStorage.removeItem('currentUser');
+      const newUser = await createUser({
+        ...userData,
+        role: 'employee',
+        hourlyRate: 450,
+        monthlyDeductions: 8500
+      });
+
+      if (newUser) {
+        // After successful registration, log the user in
+        const loginSuccess = await login(userData.email, userData.password);
+        setIsLoading(false);
+        return { success: loginSuccess };
+      }
+      
+      setIsLoading(false);
+      return { success: false, error: 'Registration failed' };
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      setIsLoading(false);
+      
+      let errorMessage = 'Registration failed. Please try again.';
+      if (error.message?.includes('duplicate') || error.message?.includes('already exists')) {
+        errorMessage = 'An account with this email already exists.';
+      }
+      
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await signOut();
       setUser(null);
     } catch (error) {
       console.error('Logout error:', error);
@@ -74,6 +108,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextType = {
     user,
     login,
+    register,
     logout,
     isLoading
   };

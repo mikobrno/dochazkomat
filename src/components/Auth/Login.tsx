@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AlertCircle, Loader2, Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { createUser } from '../../utils/storage';
 
 type AuthMode = 'login' | 'register';
 
@@ -19,7 +18,7 @@ export const Login: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user, login, isLoading } = useAuth();
+  const { user, login, register, isLoading } = useAuth();
 
   if (user) {
     return <Navigate to="/dashboard" replace />;
@@ -91,34 +90,20 @@ export const Login: React.FC = () => {
         }
       } else {
         // Registration
-        const newUser = createUser({
+        const result = await register({
           firstName: formData.firstName.trim(),
           lastName: formData.lastName.trim(),
           email: formData.email.trim(),
-          password: formData.password,
-          role: 'employee',
-          hourlyRate: 450,
-          monthlyDeductions: 8500,
-          isActive: true
+          password: formData.password
         });
 
-        // After successful registration, try to login
-        const success = await login(formData.email, formData.password);
-        if (!success) {
-          setError('Registrace byla úspěšná, ale přihlášení se nezdařilo. Zkuste se přihlásit znovu.');
+        if (!result.success) {
+          setError(result.error || 'Registrace se nezdařila. Zkuste to znovu.');
         }
       }
     } catch (error: any) {
       console.error('Auth error:', error);
-      if (authMode === 'register') {
-        if (error.message && error.message.includes('duplicate') || error.message.includes('exists')) {
-          setError('Účet s tímto emailem již existuje.');
-        } else {
-          setError('Registrace se nezdařila. Zkuste to znovu.');
-        }
-      } else {
-        setError('Přihlášení se nezdařilo. Zkuste to znovu.');
-      }
+      setError('Došlo k neočekávané chybě. Zkuste to znovu.');
     } finally {
       setIsSubmitting(false);
     }
