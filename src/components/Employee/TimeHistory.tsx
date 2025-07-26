@@ -1,15 +1,17 @@
 import React, { useState, useMemo } from 'react';
-import { Clock, Edit2, Trash2, Calendar, Save, X } from 'lucide-react';
+import { Clock, Edit2, Trash2, Calendar, Save, X, Users, DollarSign, Filter, Download } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getTimeEntries, getProjects, deleteTimeEntry, updateTimeEntry } from '../../utils/supabaseStorage';
+import { getTimeEntries, getProjects, deleteTimeEntry, updateTimeEntry, getUsers, calculateGrossSalary, exportToCSV } from '../../utils/supabaseStorage';
 import { format } from 'date-fns';
 
 export const TimeHistory: React.FC = () => {
   const { user } = useAuth();
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [timeEntries, setTimeEntries] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editFormData, setEditFormData] = useState({
     date: '',
@@ -24,12 +26,14 @@ export const TimeHistory: React.FC = () => {
   React.useEffect(() => {
     const loadData = async () => {
       try {
-        const [entriesData, projectsData] = await Promise.all([
+        const [entriesData, projectsData, usersData] = await Promise.all([
           getTimeEntries(),
-          getProjects()
+          getProjects(),
+          getUsers()
         ]);
         setTimeEntries(entriesData);
         setProjects(projectsData);
+        setUsers(usersData);
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -40,18 +44,38 @@ export const TimeHistory: React.FC = () => {
     loadData();
   }, []);
 
+  const employees = users.filter(u => u.role === 'employee' && u.isActive);
+
   const filteredEntries = useMemo(() => {
-    if (!user) return [];
+    let entries = timeEntries;
     
-    return timeEntries
-      .filter(entry => {
-        const entryDate = format(new Date(entry.date), 'yyyy-MM');
-        return entry.userId === user.id && entryDate === selectedMonth;
-      })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [timeEntries, user, selectedMonth]);
+    // Filter by user role
+    if (user?.role === 'employee') {
+      entries = entries.filter(entry => entry.userId === user.id);
+    } else if (user?.role === 'admin' && selectedEmployee !== 'all') {
+      entries = entries.filter(entry => entry.userId === selectedEmployee);
+    }
+    
+    // Filter by selected month
+    entries = entries.filter(entry => {
+      const entryDate = format(new Date(entry.date), 'yyyy-MM');
+      return entryDate === selectedMonth;
+    });
+    
+    return entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [timeEntries, user, selectedMonth, selectedEmployee]);
 
   const totalHours = filteredEntries.reduce((sum, entry) => sum + entry.hoursWorked, 0);
+  
+  const totalCost = useMemo(() => {
+    return filteredEntries.reduce((sum, entry) => {
+      const entryUser = users.find(u => u.id === entry.userId);
+      return entryUser ? sum + calculateGrossSalary(entry.hoursWorked, entryUser.hourlyRate) : sum;
+    }, 0);
+  }, [filteredEntries, users]);
+  
+  const uniqueEmployees = new Set(filteredEntries.map(e => e.userId)).size;
+  const uniqueProjects = new Set(filteredEntries.map(e => e.projectId)).size;
 
   const calculateHours = (start: string, end: string): number => {
     const startTime = new Date(`2000-01-01T${start}:00`);
@@ -131,12 +155,14 @@ export const TimeHistory: React.FC = () => {
 
       setEditingEntry(null);
       // Refresh data after successful update
-      const [entriesData, projectsData] = await Promise.all([
+      const [entriesData, projectsData, usersData] = await Promise.all([
         getTimeEntries(),
-        getProjects()
+        getProjects(),
+        getUsers()
       ]);
       setTimeEntries(entriesData);
       setProjects(projectsData);
+      setUsers(usersData);
     } catch (error) {
       console.error('Error updating time entry:', error);
       alert('Nepodařilo se aktualizovat záznam. Zkuste to znovu.');
@@ -162,12 +188,14 @@ export const TimeHistory: React.FC = () => {
         const success = await deleteTimeEntry(id);
         if (success) {
           // Refresh data after successful deletion
-          const [entriesData, projectsData] = await Promise.all([
+          const [entriesData, projectsData, usersData] = await Promise.all([
             getTimeEntries(),
-            getProjects()
+            getProjects(),
+            getUsers()
           ]);
           setTimeEntries(entriesData);
           setProjects(projectsData);
+          setUsers(usersData);
         } else {
           alert('Nepodařilo se smazat záznam. Zkuste to znovu.');
         }
@@ -178,28 +206,81 @@ export const TimeHistory: React.FC = () => {
     }
   };
 
+  const handleExport = () => {
+    const exportData = filteredEntries.map(entry => {
+      const entryUser = users.find(u => u.id === entry.userId);
+      const project = projects.find(p => p.id === entry.projectId);
+      const cost = entryUser ? calculateGrossSalary(entry.hoursWorked, entryUser.hourlyRate) : 0;
+
+      return {
+        'Datum': format(new Date(entry.date), 'dd.MM.yyyy'),
+        'Zaměstnanec': entryUser ? `${entryUser.firstName} ${entryUser.lastName}` : 'Neznámý',
+        'Email': entryUser?.email || '',
+        'Projekt': project?.name || 'Neznámý projekt',
+        'Začátek': entry.startTime,
+        'Konec': entry.endTime,
+        'Hodiny': entry.hoursWorked,
+        'Hodinová sazba': entryUser?.hourlyRate || 0,
+        'Celková cena': cost,
+        'Popis': entry.description || ''
+      };
+    });
+
+    const filename = `historie-${selectedMonth}${selectedEmployee !== 'all' ? `-${users.find(u => u.id === selectedEmployee)?.firstName || 'employee'}` : ''}.csv`;
+    exportToCSV(exportData, filename);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Historie</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {user?.role === 'admin' ? 'Historie všech zaměstnanců' : 'Moje historie'}
+          </h1>
           <p className="mt-1 text-sm text-gray-600">
-            Přehled všech vašich časových záznamů
+            {user?.role === 'admin' 
+              ? 'Přehled časových záznamů všech zaměstnanců' 
+              : 'Přehled všech vašich časových záznamů'
+            }
           </p>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
           <input
             type="month"
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
+          
+          {user?.role === 'admin' && (
+            <select
+              value={selectedEmployee}
+              onChange={(e) => setSelectedEmployee(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="all">Všichni zaměstnanci</option>
+              {employees.map(emp => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.firstName} {emp.lastName}
+                </option>
+              ))}
+            </select>
+          )}
+          
+          <button
+            onClick={handleExport}
+            disabled={filteredEntries.length === 0}
+            className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+          >
+            <Download className="h-4 w-4" />
+            <span>Export CSV</span>
+          </button>
         </div>
       </div>
 
       {/* Souhrn */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -215,11 +296,13 @@ export const TimeHistory: React.FC = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="p-2 bg-emerald-100 rounded-lg">
-              <Calendar className="h-6 w-6 text-emerald-600" />
+              <DollarSign className="h-6 w-6 text-emerald-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Počet záznamů</p>
-              <p className="text-2xl font-bold text-gray-900">{filteredEntries.length}</p>
+              <p className="text-sm font-medium text-gray-600">Celkové náklady</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {totalCost.toLocaleString('cs-CZ')} Kč
+              </p>
             </div>
           </div>
         </div>
@@ -230,20 +313,82 @@ export const TimeHistory: React.FC = () => {
               <Calendar className="h-6 w-6 text-amber-600" />
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Průměr hodin/den</p>
+              <p className="text-sm font-medium text-gray-600">Počet záznamů</p>
+              <p className="text-2xl font-bold text-gray-900">{filteredEntries.length}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              {user?.role === 'admin' ? <Users className="h-6 w-6 text-purple-600" /> : <Calendar className="h-6 w-6 text-purple-600" />}
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">
+                {user?.role === 'admin' ? 'Zaměstnanci' : 'Průměr hodin/záznam'}
+              </p>
               <p className="text-2xl font-bold text-gray-900">
-                {filteredEntries.length > 0 ? (totalHours / filteredEntries.length).toFixed(1) : '0'}h
+                {user?.role === 'admin' 
+                  ? uniqueEmployees
+                  : filteredEntries.length > 0 ? (totalHours / filteredEntries.length).toFixed(1) + 'h' : '0h'
+                }
               </p>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Dodatečné statistiky pro administrátory */}
+      {user?.role === 'admin' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="p-2 bg-indigo-100 rounded-lg">
+              <Filter className="h-5 w-5 text-indigo-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">Detailní přehled</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm font-medium text-gray-600">Aktivní projekty</p>
+              <p className="text-xl font-bold text-gray-900">{uniqueProjects}</p>
+            </div>
+            <div className="text-center p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm font-medium text-gray-600">Průměrná hodinová sazba</p>
+              <p className="text-xl font-bold text-gray-900">
+                {filteredEntries.length > 0 
+                  ? Math.round(filteredEntries.reduce((sum, entry) => {
+                      const entryUser = users.find(u => u.id === entry.userId);
+                      return sum + (entryUser?.hourlyRate || 0);
+                    }, 0) / filteredEntries.length)
+                  : 0
+                } Kč/h
+              </p>
+            </div>
+            <div className="text-center p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm font-medium text-gray-600">Průměrné náklady/hodina</p>
+              <p className="text-xl font-bold text-gray-900">
+                {totalHours > 0 
+                  ? Math.round(totalCost / totalHours).toLocaleString('cs-CZ')
+                  : 0
+                } Kč
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tabulka záznamů */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">
             Časové záznamy - {format(new Date(selectedMonth + '-01'), 'LLLL yyyy')}
+            {user?.role === 'admin' && selectedEmployee !== 'all' && (
+              <span className="text-base font-normal text-gray-600 ml-2">
+                ({users.find(u => u.id === selectedEmployee)?.firstName} {users.find(u => u.id === selectedEmployee)?.lastName})
+              </span>
+            )}
           </h3>
         </div>
 
@@ -263,6 +408,11 @@ export const TimeHistory: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Datum
                   </th>
+                  {user?.role === 'admin' && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Zaměstnanec
+                    </th>
+                  )}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Čas
                   </th>
@@ -272,6 +422,11 @@ export const TimeHistory: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Hodiny
                   </th>
+                  {user?.role === 'admin' && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Náklady
+                    </th>
+                  )}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Popis
                   </th>
@@ -283,6 +438,8 @@ export const TimeHistory: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredEntries.map((entry) => {
                   const project = projects.find(p => p.id === entry.projectId);
+                  const entryUser = users.find(u => u.id === entry.userId);
+                  const entryCost = entryUser ? calculateGrossSalary(entry.hoursWorked, entryUser.hourlyRate) : 0;
                   
                   if (editingEntry === entry.id) {
                     return (
@@ -298,6 +455,11 @@ export const TimeHistory: React.FC = () => {
                           />
                           {errors.date && <p className="text-xs text-red-600 mt-1">{errors.date}</p>}
                         </td>
+                        {user?.role === 'admin' && (
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {entryUser ? `${entryUser.firstName} ${entryUser.lastName}` : 'Neznámý'}
+                          </td>
+                        )}
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex space-x-1">
                             <input
@@ -342,6 +504,11 @@ export const TimeHistory: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
                           {editFormData.hoursWorked}h
                         </td>
+                        {user?.role === 'admin' && (
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {entryCost.toLocaleString('cs-CZ')} Kč
+                          </td>
+                        )}
                         <td className="px-6 py-4">
                           <input
                             type="text"
@@ -378,6 +545,18 @@ export const TimeHistory: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {format(new Date(entry.date), 'dd.MM.yyyy')}
                       </td>
+                      {user?.role === 'admin' && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <div className="flex items-center">
+                            <div className="h-6 w-6 bg-blue-100 rounded-full flex items-center justify-center mr-2">
+                              <span className="text-xs font-medium text-blue-600">
+                                {entryUser?.firstName?.charAt(0)?.toUpperCase() || ''}{entryUser?.lastName?.charAt(0)?.toUpperCase() || ''}
+                              </span>
+                            </div>
+                            {entryUser ? `${entryUser.firstName} ${entryUser.lastName}` : 'Neznámý'}
+                          </div>
+                        </td>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {entry.startTime} - {entry.endTime}
                       </td>
@@ -387,25 +566,36 @@ export const TimeHistory: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {entry.hoursWorked}h
                       </td>
+                      {user?.role === 'admin' && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {entryCost.toLocaleString('cs-CZ')} Kč
+                        </td>
+                      )}
                       <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
                         {entry.description || '-'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end space-x-2">
-                          <button
-                            onClick={() => handleEdit(entry)}
-                            className="text-blue-600 hover:text-blue-900 transition-colors duration-200"
-                            title="Upravit záznam"
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(entry.id)}
-                            className="text-red-600 hover:text-red-900 transition-colors duration-200"
-                            title="Smazat záznam"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          {(user?.role === 'employee' && entry.userId === user.id) || user?.role === 'admin' ? (
+                            <>
+                              <button
+                                onClick={() => handleEdit(entry)}
+                                className="text-blue-600 hover:text-blue-900 transition-colors duration-200"
+                                title="Upravit záznam"
+                              >
+                                <Edit2 className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(entry.id)}
+                                className="text-red-600 hover:text-red-900 transition-colors duration-200"
+                                title="Smazat záznam"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-gray-400 text-xs">Pouze čtení</span>
+                          )}
                         </div>
                       </td>
                     </tr>
