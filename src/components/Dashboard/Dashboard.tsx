@@ -248,7 +248,7 @@ export const Dashboard: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Příspěvky zaměstnavatele</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {monthlyData?.deductions.toLocaleString('cs-CZ') || 0} Kč
+                  {user?.monthlyDeductions.toLocaleString('cs-CZ') || 0} Kč
                 </p>
               </div>
             </div>
@@ -311,9 +311,9 @@ export const Dashboard: React.FC = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-base font-semibold text-blue-800">Celkové příspěvky zaměstnavatele:</span>
                     <span className="text-base font-bold text-blue-900">
-                      {user?.monthlyDeductions.toLocaleString('cs-CZ') || 0} Kč
+                      {user?.monthlyDeductions?.toLocaleString('cs-CZ') || 0} Kč
                     </span>
-                  </div>
+                  <span className="text-sm font-bold text-gray-900">{user?.monthlyDeductions.toLocaleString('cs-CZ') || 0} Kč</span>
                 </div>
               </div>
             </div>
