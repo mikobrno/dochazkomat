@@ -313,7 +313,7 @@ export const Dashboard: React.FC = () => {
                     <span className="text-base font-bold text-blue-900">
                       {user?.monthlyDeductions?.toLocaleString('cs-CZ') || 0} Kč
                     </span>
-                  <span className="text-sm font-bold text-gray-900">{user?.monthlyDeductions.toLocaleString('cs-CZ') || 0} Kč</span>
+                  </div>
                 </div>
               </div>
             </div>
