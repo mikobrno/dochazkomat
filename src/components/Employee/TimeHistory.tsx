@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Clock, Edit2, Trash2, Calendar, Save, X } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { getTimeEntries, getProjects, deleteTimeEntry, updateTimeEntry, calculateHoursFromTime } from '../../utils/supabaseStorage';
+import { getTimeEntries, getProjects, deleteTimeEntry, updateTimeEntry } from '../../utils/supabaseStorage';
 import { format } from 'date-fns';
 
 export const TimeHistory: React.FC = () => {
@@ -23,14 +23,18 @@ export const TimeHistory: React.FC = () => {
   
   React.useEffect(() => {
     const loadData = async () => {
-      setLoading(true);
-      try {
-        const [entriesData, projectsData] = await Promise.all([
-          getTimeEntries(),
-          getProjects()
-        ]);
-        setTimeEntries(entriesData);
-        setProjects(projectsData);
+        const success = await deleteTimeEntry(id);
+        if (success) {
+          // Refresh data after successful deletion
+          const [entriesData, projectsData] = await Promise.all([
+            getTimeEntries(),
+            getProjects()
+          ]);
+          setTimeEntries(entriesData);
+          setProjects(projectsData);
+        } else {
+          alert('Nepodařilo se smazat záznam. Zkuste to znovu.');
+        }
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -159,35 +163,7 @@ export const TimeHistory: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Opravdu chcete smazat tento záznam?')) {
       try {
-        const success = await deleteTimeEntry(id);
-        if (success) {
-          // Refresh data after successful deletion
-          const [entriesData, projectsData] = await Promise.all([
-            getTimeEntries(),
-            getProjects()
-          ]);
-          setTimeEntries(entriesData);
-          setProjects(projectsData);
-        }
-      } catch (error) {
-        console.error('Error deleting time entry:', error);
-        alert('Nepodařilo se smazat záznam. Zkuste to znovu.');
-      }
-    }
-  };
-        // Refresh data after successful deletion
-        const [entriesData, projectsData] = await Promise.all([
-          getTimeEntries(),
-          getProjects()
-        ]);
-        setTimeEntries(entriesData);
-        setProjects(projectsData);
-      } catch (error) {
-        console.error('Error deleting time entry:', error);
-        alert('Nepodařilo se smazat záznam. Zkuste to znovu.');
-      }
-    }
-  };
+        await deleteTimeEntry(id);
 
   return (
     <div className="space-y-6">
