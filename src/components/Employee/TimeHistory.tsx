@@ -70,7 +70,7 @@ export const TimeHistory: React.FC = () => {
   const totalCost = useMemo(() => {
     return filteredEntries.reduce((sum, entry) => {
       const entryUser = users.find(u => u.id === entry.userId);
-      return entryUser ? sum + calculateGrossSalary(entry.hoursWorked, entryUser.hourlyRate) : sum;
+      return entryUser ? sum + (entry.hoursWorked * entryUser.hourlyRate) : sum;
     }, 0);
   }, [filteredEntries, users]);
   
@@ -241,7 +241,7 @@ export const TimeHistory: React.FC = () => {
     const exportData = filteredEntries.map(entry => {
       const entryUser = users.find(u => u.id === entry.userId);
       const project = projects.find(p => p.id === entry.projectId);
-      const cost = entryUser ? calculateGrossSalary(entry.hoursWorked, entryUser.hourlyRate) : 0;
+      const cost = entryUser ? (entry.hoursWorked * entryUser.hourlyRate) : 0;
 
       return {
         'Datum': format(new Date(entry.date), 'dd.MM.yyyy'),
@@ -470,7 +470,7 @@ export const TimeHistory: React.FC = () => {
                 {filteredEntries.map((entry) => {
                   const project = projects.find(p => p.id === entry.projectId);
                   const entryUser = users.find(u => u.id === entry.userId);
-                  const entryCost = entryUser ? calculateGrossSalary(entry.hoursWorked, entryUser.hourlyRate) : 0;
+                  const entryCost = entryUser ? (entry.hoursWorked * entryUser.hourlyRate) : 0;
                   
                   if (editingEntry === entry.id) {
                     return (
