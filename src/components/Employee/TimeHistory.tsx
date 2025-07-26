@@ -130,9 +130,16 @@ export const TimeHistory: React.FC = () => {
       });
 
       setEditingEntry(null);
-      window.location.reload();
+      // Refresh data after successful update
+      const [entriesData, projectsData] = await Promise.all([
+        getTimeEntries(),
+        getProjects()
+      ]);
+      setTimeEntries(entriesData);
+      setProjects(projectsData);
     } catch (error) {
       console.error('Error updating time entry:', error);
+      alert('Nepodařilo se aktualizovat záznam. Zkuste to znovu.');
     }
   };
 
@@ -151,8 +158,19 @@ export const TimeHistory: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Opravdu chcete smazat tento záznam?')) {
-      deleteTimeEntry(id);
-      window.location.reload();
+      try {
+        await deleteTimeEntry(id);
+        // Refresh data after successful deletion
+        const [entriesData, projectsData] = await Promise.all([
+          getTimeEntries(),
+          getProjects()
+        ]);
+        setTimeEntries(entriesData);
+        setProjects(projectsData);
+      } catch (error) {
+        console.error('Error deleting time entry:', error);
+        alert('Nepodařilo se smazat záznam. Zkuste to znovu.');
+      }
     }
   };
 
