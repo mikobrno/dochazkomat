@@ -66,14 +66,14 @@ export const Dashboard: React.FC = () => {
     });
 
     const totalHours = monthEntries.reduce((sum, entry) => sum + entry.hoursWorked, 0);
-    const grossSalary = calculateGrossSalary(totalHours, user.hourlyRate);
-    const netSalary = calculateNetSalary(totalHours, user.hourlyRate);
+    const netSalary = totalHours * user.hourlyRate; // Čistá mzda = hodiny × sazba
+    const grossSalary = netSalary + user.monthlyDeductions; // Hrubá mzda = čistá + příspěvky zaměstnavatele
 
     return {
       totalHours,
       grossSalary,
       netSalary,
-      deductions: grossSalary - netSalary,
+      deductions: user.monthlyDeductions, // Odvody = příspěvky zaměstnavatele
       entriesCount: monthEntries.length,
       recentEntries: monthEntries
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -278,7 +278,7 @@ export const Dashboard: React.FC = () => {
               </div>
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-sm font-medium text-gray-600">Odvody:</span>
-                <span className="text-sm font-bold text-gray-900">{monthlyData?.deductions.toLocaleString('cs-CZ') || 0} Kč</span>
+                <span className="text-sm font-bold text-gray-900">{user?.monthlyDeductions.toLocaleString('cs-CZ') || 0} Kč</span>
               </div>
             </div>
             
