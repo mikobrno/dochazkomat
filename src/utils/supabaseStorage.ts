@@ -348,7 +348,16 @@ export const getCurrentUser = async (): Promise<User | null> => {
 };
 
 export const signOut = async (): Promise<void> => {
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+  
+  if (error && error.message !== 'session_not_found') {
+    console.error('Error during sign out:', error);
+    throw error;
+  }
+  
+  if (error && error.message === 'session_not_found') {
+    console.warn('Session was already expired or invalid, but user is now logged out');
+  }
 };
 
 // Utility functions
