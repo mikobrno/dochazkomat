@@ -227,7 +227,7 @@ export const deleteTimeEntry = async (id: string): Promise<boolean> => {
 
   if (error) {
     console.error('Error deleting time entry:', error);
-    return false;
+    throw new Error(error.message);
   }
 
   return true;
