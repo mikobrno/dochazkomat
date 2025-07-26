@@ -23,18 +23,13 @@ export const TimeHistory: React.FC = () => {
   
   React.useEffect(() => {
     const loadData = async () => {
-        const success = await deleteTimeEntry(id);
-        if (success) {
-          // Refresh data after successful deletion
-          const [entriesData, projectsData] = await Promise.all([
-            getTimeEntries(),
-            getProjects()
-          ]);
-          setTimeEntries(entriesData);
-          setProjects(projectsData);
-        } else {
-          alert('Nepodařilo se smazat záznam. Zkuste to znovu.');
-        }
+      try {
+        const [entriesData, projectsData] = await Promise.all([
+          getTimeEntries(),
+          getProjects()
+        ]);
+        setTimeEntries(entriesData);
+        setProjects(projectsData);
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -44,6 +39,7 @@ export const TimeHistory: React.FC = () => {
 
     loadData();
   }, []);
+
   const filteredEntries = useMemo(() => {
     if (!user) return [];
     
@@ -163,7 +159,24 @@ export const TimeHistory: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Opravdu chcete smazat tento záznam?')) {
       try {
-        await deleteTimeEntry(id);
+        const success = await deleteTimeEntry(id);
+        if (success) {
+          // Refresh data after successful deletion
+          const [entriesData, projectsData] = await Promise.all([
+            getTimeEntries(),
+            getProjects()
+          ]);
+          setTimeEntries(entriesData);
+          setProjects(projectsData);
+        } else {
+          alert('Nepodařilo se smazat záznam. Zkuste to znovu.');
+        }
+      } catch (error) {
+        console.error('Error deleting time entry:', error);
+        alert('Nepodařilo se smazat záznam. Zkuste to znovu.');
+      }
+    }
+  };
 
   return (
     <div className="space-y-6">
