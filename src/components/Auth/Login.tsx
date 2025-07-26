@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
-type UserRole = 'admin' | 'employee' | null;
+type AuthMode = 'login' | 'register';
 
 export const Login: React.FC = () => {
-  const [selectedRole, setSelectedRole] = useState<UserRole>(null);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    firstName: '',
+    lastName: ''
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const { user, login, isLoading } = useAuth();
 
@@ -16,147 +23,133 @@ export const Login: React.FC = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const handleRoleSelect = (role: UserRole) => {
-    setSelectedRole(role);
+  const resetForm = () => {
+    setFormData({
+      email: '',
+      password: '',
+      confirmPassword: '',
+      firstName: '',
+      lastName: ''
+    });
     setError('');
-    // Pre-fill email based on role for demo purposes
-    if (role === 'admin') {
-      setEmail('admin@firma.cz');
-    } else if (role === 'employee') {
-      setEmail('jan.novak@firma.cz');
-    }
   };
 
-  const handleBackToRoleSelection = () => {
-    setSelectedRole(null);
-    setEmail('');
-    setPassword('');
-    setError('');
+  const switchMode = (mode: AuthMode) => {
+    setAuthMode(mode);
+    resetForm();
+  };
+
+  const validateForm = (): boolean => {
+    if (!formData.email || !formData.password) {
+      setError('Prosím vyplňte všechna povinná pole');
+      return false;
+    }
+
+    if (!formData.email.includes('@')) {
+      setError('Prosím zadejte platný email');
+      return false;
+    }
+
+    if (formData.password.length < 4) {
+      setError('Heslo musí mít alespoň 4 znaky');
+      return false;
+    }
+
+    if (authMode === 'register') {
+      if (!formData.firstName || !formData.lastName) {
+        setError('Prosím vyplňte jméno a příjmení');
+        return false;
+      }
+
+      if (formData.password !== formData.confirmPassword) {
+        setError('Hesla se neshodují');
+        return false;
+      }
+    }
+
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (!selectedRole) {
-      setError('Prosím vyberte svou roli');
-      return;
-    }
+    if (!validateForm()) return;
 
-    if (!email || !password) {
-      setError('Prosím vyplňte všechna pole');
-      return;
-    }
-    
-    const success = await login(email, password);
-    if (!success) {
-      setError('Neplatné přihlašovací údaje nebo neaktivní účet.');
+    if (authMode === 'login') {
+      const success = await login(formData.email, formData.password);
+      if (!success) {
+        setError('Neplatné přihlašovací údaje nebo neaktivní účet.');
+      }
+    } else {
+      // Registration logic would go here
+      // For now, we'll show a message that registration is not implemented
+      setError('Registrace není zatím implementována. Použijte testovací účty.');
     }
   };
 
-  // Role Selection Step
-  if (!selectedRole) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="max-w-md w-full space-y-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900">
-              Evidence docházky
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Jako kdo přistupujete?
-            </p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            {error && (
-              <div className="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-lg mb-6">
-                <AlertCircle className="h-4 w-4 text-red-600" />
-                <p className="text-sm text-red-600">{error}</p>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <button
-                onClick={() => handleRoleSelect('admin')}
-                className="w-full p-4 text-left border-2 border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <div className="text-center">
-                  <h4 className="text-lg font-semibold text-gray-900">
-                    Administrátor
-                  </h4>
-                  <p className="text-xs text-blue-600 mt-1">
-                    Test účet: admin@firma.cz
-                  </p>
-                </div>
-              </button>
-
-              <button
-                onClick={() => handleRoleSelect('employee')}
-                className="w-full p-4 text-left border-2 border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <div className="text-center">
-                  <h4 className="text-lg font-semibold text-gray-900">
-                    Zaměstnanec
-                  </h4>
-                  <p className="text-xs text-blue-600 mt-1">
-                    Test účet: jan.novak@firma.cz
-                  </p>
-                </div>
-              </button>
-            </div>
-
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="text-sm text-gray-500 space-y-2">
-                <p className="font-medium">Testovací hesla:</p>
-                <div className="space-y-1">
-                  <p><strong>Administrátor:</strong> admin123</p>
-                  <p><strong>Zaměstnanci:</strong> heslo123</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Login Form Step
-  const roleTitle = selectedRole === 'admin' ? 'Administrátor' : 'Zaměstnanec';
-
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
+          <div className="mx-auto h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
+            <User className="h-8 w-8 text-white" />
+          </div>
           <h2 className="text-3xl font-bold text-gray-900">
             Evidence docházky
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Přihlášení jako {roleTitle}
+            {authMode === 'login' ? 'Přihlaste se do svého účtu' : 'Vytvořte si nový účet'}
           </p>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          {/* Role Indicator */}
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">
-                Přihlášení jako {roleTitle}
-              </h3>
-            </div>
-            <button
-              onClick={handleBackToRoleSelection}
-              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-            >
-              Změnit roli
-            </button>
-          </div>
-
+        <div className="bg-white rounded-xl shadow-lg p-8">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
               <div className="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                <AlertCircle className="h-4 w-4 text-red-600" />
+                <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
                 <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
+            {authMode === 'register' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-2">
+                    Křestní jméno
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      id="firstName"
+                      name="firstName"
+                      type="text"
+                      required={authMode === 'register'}
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Jan"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-2">
+                    Příjmení
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      id="lastName"
+                      name="lastName"
+                      type="text"
+                      required={authMode === 'register'}
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Novák"
+                    />
+                  </div>
+                </div>
               </div>
             )}
 
@@ -164,65 +157,138 @@ export const Login: React.FC = () => {
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email
               </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="vas.email@firma.cz"
-              />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="vas.email@firma.cz"
+                />
+              </div>
             </div>
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Heslo
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Zadejte heslo"
-              />
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Zadejte heslo"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
+
+            {authMode === 'register' && (
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                  Potvrdit heslo
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    required={authMode === 'register'}
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Potvrďte heslo"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
             >
               {isLoading ? (
                 <>
                   <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
-                  Přihlašování...
+                  {authMode === 'login' ? 'Přihlašování...' : 'Registrování...'}
                 </>
               ) : (
-                'Přihlásit se'
+                authMode === 'login' ? 'Přihlásit se' : 'Registrovat se'
               )}
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <div className="text-sm text-gray-500 space-y-2">
-              <p className="font-medium">Testovací účty pro roli {roleTitle}:</p>
-              <div className="space-y-1">
-                {selectedRole === 'admin' ? (
-                  <p><strong>Admin:</strong> admin@firma.cz / admin123</p>
-                ) : (
-                  <>
-                    <p><strong>Jan Novák:</strong> jan.novak@firma.cz / heslo123</p>
-                    <p><strong>Marie Svobodová:</strong> marie.svobodova@firma.cz / heslo123</p>
-                  </>
-                )}
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">nebo</span>
               </div>
             </div>
+
+            <div className="mt-6 text-center">
+              {authMode === 'login' ? (
+                <p className="text-sm text-gray-600">
+                  Nemáte účet?{' '}
+                  <button
+                    onClick={() => switchMode('register')}
+                    className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200"
+                  >
+                    Registrujte se zde
+                  </button>
+                </p>
+              ) : (
+                <p className="text-sm text-gray-600">
+                  Již máte účet?{' '}
+                  <button
+                    onClick={() => switchMode('login')}
+                    className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200"
+                  >
+                    Přihlaste se zde
+                  </button>
+                </p>
+              )}
+            </div>
           </div>
+
+          {authMode === 'login' && (
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="text-sm text-gray-500 space-y-2">
+                <p className="font-medium">Testovací účty:</p>
+                <div className="space-y-1">
+                  <p><strong>Admin:</strong> admin@firma.cz / admin123</p>
+                  <p><strong>Jan Novák:</strong> jan.novak@firma.cz / heslo123</p>
+                  <p><strong>Marie Svobodová:</strong> marie.svobodova@firma.cz / heslo123</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
