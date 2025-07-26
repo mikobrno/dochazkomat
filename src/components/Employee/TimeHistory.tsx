@@ -183,25 +183,56 @@ export const TimeHistory: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Opravdu chcete smazat tento záznam?')) {
+    // Enhanced confirmation dialog
+    const confirmMessage = 'Opravdu chcete trvale smazat tento časový záznam?\n\nTato akce je nevratná a záznam bude odstraněn z databáze.';
+    
+    if (window.confirm(confirmMessage)) {
       try {
+        console.log('Attempting to delete time entry with ID:', id);
         const success = await deleteTimeEntry(id);
+        console.log('Delete operation result:', success);
+        
         if (success) {
+          // Show success feedback
+          alert('Záznam byl úspěšně smazán.');
+          
           // Refresh data after successful deletion
-          const [entriesData, projectsData, usersData] = await Promise.all([
-            getTimeEntries(),
-            getProjects(),
-            getUsers()
-          ]);
-          setTimeEntries(entriesData);
-          setProjects(projectsData);
-          setUsers(usersData);
+          try {
+            const [entriesData, projectsData, usersData] = await Promise.all([
+              getTimeEntries(),
+              getProjects(),
+              getUsers()
+            ]);
+            setTimeEntries(entriesData);
+            setProjects(projectsData);
+            setUsers(usersData);
+          } catch (refreshError) {
+            console.error('Error refreshing data after deletion:', refreshError);
+            // Even if refresh fails, the deletion was successful
+            alert('Záznam byl smazán, ale nepodařilo se obnovit seznam. Obnovte stránku.');
+          }
         } else {
-          alert('Nepodařilo se smazat záznam. Zkuste to znovu.');
+          console.error('Delete operation returned false');
+          alert('Nepodařilo se smazat záznam. Možná nemáte dostatečná oprávnění nebo záznam již neexistuje.');
         }
       } catch (error) {
         console.error('Error deleting time entry:', error);
-        alert('Nepodařilo se smazat záznam. Zkuste to znovu.');
+        
+        // Provide more specific error messages
+        let errorMessage = 'Nepodařilo se smazat záznam. ';
+        if (error instanceof Error) {
+          if (error.message.includes('permission')) {
+            errorMessage += 'Nemáte oprávnění k mazání tohoto záznamu.';
+          } else if (error.message.includes('not found')) {
+            errorMessage += 'Záznam nebyl nalezen.';
+          } else {
+            errorMessage += `Chyba: ${error.message}`;
+          }
+        } else {
+          errorMessage += 'Zkuste to znovu nebo kontaktujte administrátora.';
+        }
+        
+        alert(errorMessage);
       }
     }
   };

@@ -220,6 +220,13 @@ export const updateTimeEntry = async (id: string, updates: Partial<TimeEntry>): 
 };
 
 export const deleteTimeEntry = async (id: string): Promise<boolean> => {
+  console.log('deleteTimeEntry called with ID:', id);
+  
+  if (!id) {
+    console.error('No ID provided for deletion');
+    return false;
+  }
+  
   const { error } = await supabase
     .from('time_entries')
     .delete()
@@ -227,9 +234,16 @@ export const deleteTimeEntry = async (id: string): Promise<boolean> => {
 
   if (error) {
     console.error('Error deleting time entry:', error);
+    console.error('Error details:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code
+    });
     return false;
   }
 
+  console.log('Time entry deleted successfully');
   return true;
 };
 

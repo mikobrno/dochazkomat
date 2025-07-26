@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
-import { Clock, DollarSign, Calendar, TrendingUp, ArrowLeft, ArrowRight, Filter } from 'lucide-react';
+import { Clock, DollarSign, Calendar, TrendingUp, ArrowLeft, ArrowRight, Filter, Building2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getTimeEntries, getProjects, calculateGrossSalary, calculateNetSalary } from '../../utils/supabaseStorage';
+import { getSettings } from '../../utils/storage';
 import { format, startOfMonth, endOfMonth, subMonths, addMonths, startOfYear, endOfYear } from 'date-fns';
 import { cs } from 'date-fns/locale';
 
@@ -14,6 +15,7 @@ export const Dashboard: React.FC = () => {
   const [timeEntries, setTimeEntries] = React.useState<any[]>([]);
   const [projects, setProjects] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const settings = getSettings();
   
   React.useEffect(() => {
     const loadData = async () => {
@@ -277,6 +279,46 @@ export const Dashboard: React.FC = () => {
               <div className="flex justify-between items-center py-2 border-b border-gray-100">
                 <span className="text-sm font-medium text-gray-600">Odvody:</span>
                 <span className="text-sm font-bold text-gray-900">{monthlyData?.deductions.toLocaleString('cs-CZ') || 0} Kč</span>
+              </div>
+            </div>
+            
+            {/* Employer Contributions Section */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2 py-2 border-b border-gray-100">
+                <Building2 className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-bold text-gray-900">Příspěvky zaměstnavatele</span>
+              </div>
+              <div className="bg-blue-50 rounded-lg p-4 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-blue-700">Sociální pojištění ({settings.socialInsuranceRate}%):</span>
+                  <span className="text-sm font-bold text-blue-800">
+                    {((monthlyData?.netSalary || 0) * settings.socialInsuranceRate / 100).toLocaleString('cs-CZ')} Kč
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-blue-700">Zdravotní pojištění ({settings.healthInsuranceRate}%):</span>
+                  <span className="text-sm font-bold text-blue-800">
+                    {((monthlyData?.netSalary || 0) * settings.healthInsuranceRate / 100).toLocaleString('cs-CZ')} Kč
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-blue-700">Měsíční odvody:</span>
+                  <span className="text-sm font-bold text-blue-800">
+                    {user?.monthlyDeductions.toLocaleString('cs-CZ') || 0} Kč
+                  </span>
+                </div>
+                <div className="border-t border-blue-200 pt-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-base font-semibold text-blue-800">Celkové příspěvky zaměstnavatele:</span>
+                    <span className="text-base font-bold text-blue-900">
+                      {(
+                        ((monthlyData?.netSalary || 0) * settings.socialInsuranceRate / 100) +
+                        ((monthlyData?.netSalary || 0) * settings.healthInsuranceRate / 100) +
+                        (user?.monthlyDeductions || 0)
+                      ).toLocaleString('cs-CZ')} Kč
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Download, Filter, BarChart3, Users } from 'lucide-react';
+import { Download, Filter, BarChart3, Users, Building2 } from 'lucide-react';
 import { getUsers, getTimeEntries, getProjects, calculateGrossSalary, exportToCSV } from '../../utils/supabaseStorage';
+import { getSettings } from '../../utils/storage';
 import { format } from 'date-fns';
 
 export const Reports: React.FC = () => {
@@ -13,6 +14,7 @@ export const Reports: React.FC = () => {
   const [timeEntries, setTimeEntries] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const settings = getSettings();
 
   React.useEffect(() => {
     const loadData = async () => {
@@ -218,6 +220,73 @@ export const Reports: React.FC = () => {
               <p className="text-2xl font-bold text-gray-900">{filteredData.uniqueProjects}</p>
             </div>
           </div>
+        </div>
+
+        {/* Employer Contributions Summary */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-indigo-100 rounded-lg">
+              <Building2 className="h-6 w-6 text-indigo-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Příspěvky zaměstnavatele</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {(filteredData.totalCost * 0.338).toLocaleString('cs-CZ')} Kč
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Detailed Employer Contributions Section */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="flex items-center space-x-3 mb-6">
+          <div className="p-2 bg-indigo-100 rounded-lg">
+            <Building2 className="h-6 w-6 text-indigo-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900">Detailní přehled příspěvků zaměstnavatele</h3>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-blue-50 rounded-lg p-4">
+            <div className="text-center">
+              <p className="text-sm font-medium text-blue-700">Sociální pojištění</p>
+              <p className="text-xl font-bold text-blue-900">{settings.socialInsuranceRate}%</p>
+              <p className="text-sm text-blue-600">
+                {(filteredData.totalCost * settings.socialInsuranceRate / 100).toLocaleString('cs-CZ')} Kč
+              </p>
+            </div>
+          </div>
+          
+          <div className="bg-green-50 rounded-lg p-4">
+            <div className="text-center">
+              <p className="text-sm font-medium text-green-700">Zdravotní pojištění</p>
+              <p className="text-xl font-bold text-green-900">{settings.healthInsuranceRate}%</p>
+              <p className="text-sm text-green-600">
+                {(filteredData.totalCost * settings.healthInsuranceRate / 100).toLocaleString('cs-CZ')} Kč
+              </p>
+            </div>
+          </div>
+          
+          <div className="bg-purple-50 rounded-lg p-4">
+            <div className="text-center">
+              <p className="text-sm font-medium text-purple-700">Celkové příspěvky</p>
+              <p className="text-xl font-bold text-purple-900">
+                {((settings.socialInsuranceRate + settings.healthInsuranceRate)).toFixed(1)}%
+              </p>
+              <p className="text-sm text-purple-600">
+                {(filteredData.totalCost * (settings.socialInsuranceRate + settings.healthInsuranceRate) / 100).toLocaleString('cs-CZ')} Kč
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+          <p className="text-sm text-gray-600">
+            <strong>Poznámka:</strong> Příspěvky zaměstnavatele jsou vypočítány na základě nastavených sazeb v systému. 
+            Sociální pojištění: {settings.socialInsuranceRate}%, Zdravotní pojištění: {settings.healthInsuranceRate}%. 
+            Tyto sazby lze upravit v nastavení systému.
+          </p>
         </div>
       </div>
 
