@@ -290,15 +290,15 @@ export const Dashboard: React.FC = () => {
               </div>
               <div className="bg-blue-50 rounded-lg p-4 space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-blue-700">Sociální pojištění ({settings.socialInsuranceRate}%):</span>
+                  <span className="text-sm font-medium text-blue-700">Sociální pojištění (0%):</span>
                   <span className="text-sm font-bold text-blue-800">
-                    {((monthlyData?.netSalary || 0) * settings.socialInsuranceRate / 100).toLocaleString('cs-CZ')} Kč
+                    0 Kč
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-blue-700">Zdravotní pojištění ({settings.healthInsuranceRate}%):</span>
+                  <span className="text-sm font-medium text-blue-700">Zdravotní pojištění (0%):</span>
                   <span className="text-sm font-bold text-blue-800">
-                    {((monthlyData?.netSalary || 0) * settings.healthInsuranceRate / 100).toLocaleString('cs-CZ')} Kč
+                    0 Kč
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -311,11 +311,7 @@ export const Dashboard: React.FC = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-base font-semibold text-blue-800">Celkové příspěvky zaměstnavatele:</span>
                     <span className="text-base font-bold text-blue-900">
-                      {(
-                        ((monthlyData?.netSalary || 0) * settings.socialInsuranceRate / 100) +
-                        ((monthlyData?.netSalary || 0) * settings.healthInsuranceRate / 100) +
-                        (user?.monthlyDeductions || 0)
-                      ).toLocaleString('cs-CZ')} Kč
+                      {user?.monthlyDeductions.toLocaleString('cs-CZ') || 0} Kč
                     </span>
                   </div>
                 </div>
