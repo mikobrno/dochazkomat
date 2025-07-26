@@ -31,7 +31,7 @@ function App() {
                   <AddTimeEntry />
                 </ProtectedRoute>
               } />
-              <Route path="history" element={
+              <Route path="time-history" element={
                 <ProtectedRoute allowedRoles={['employee']}>
                   <TimeHistory />
                 </ProtectedRoute>

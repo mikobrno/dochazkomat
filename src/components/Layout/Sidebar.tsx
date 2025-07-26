@@ -14,7 +14,7 @@ import { useAuth } from '../../contexts/AuthContext';
 const navItems = [
   { name: 'Můj přehled', href: '/dashboard', icon: LayoutDashboard, roles: ['admin', 'employee'] },
   { name: 'Přidat záznam', href: '/add-entry', icon: Clock, roles: ['employee'] },
-  { name: 'Historie', href: '/history', icon: Clock, roles: ['employee'] },
+  { name: 'Historie', href: '/time-history', icon: Clock, roles: ['employee'] },
   { name: 'Reporty a přehledy', href: '/reports', icon: BarChart3, roles: ['admin'] },
   { name: 'Správa zaměstnanců', href: '/employees', icon: Users, roles: ['admin'] },
   { name: 'Správa projektů', href: '/projects', icon: FolderOpen, roles: ['admin'] },
