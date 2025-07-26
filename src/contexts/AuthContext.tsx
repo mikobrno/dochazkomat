@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthContextType } from '../types';
-import { authenticateUser, getCurrentUser, signOut } from '../utils/supabaseStorage';
-import { supabase } from '../lib/supabaseClient';
+import { getUsers, createUser } from '../utils/storage';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -22,44 +21,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const checkUser = async () => {
+    // Check if user is already logged in (from localStorage)
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
       try {
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
+        setUser(JSON.parse(savedUser));
       } catch (error) {
-        console.error('Error checking current user:', error);
-      } finally {
-        setIsLoading(false);
+        console.error('Error parsing saved user:', error);
+        localStorage.removeItem('currentUser');
       }
-    };
-
-    checkUser();
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          const currentUser = await getCurrentUser();
-          setUser(currentUser);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-        }
-        setIsLoading(false);
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    }
+    setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
     try {
-      const foundUser = await authenticateUser(email, password);
+      const users = getUsers();
+      const foundUser = users.find(u => 
+        u.email.toLowerCase() === email.toLowerCase() && 
+        u.password === password &&
+        u.isActive
+      );
       
       if (foundUser) {
         setUser(foundUser);
+        localStorage.setItem('currentUser', JSON.stringify(foundUser));
         setIsLoading(false);
         return true;
       }
@@ -73,12 +61,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = () => {
     try {
-      await signOut();
+      localStorage.removeItem('currentUser');
       setUser(null);
     } catch (error) {
       console.error('Logout error:', error);
+      setUser(null);
     }
   };
 

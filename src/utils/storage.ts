@@ -136,6 +136,13 @@ export const saveUsers = (users: User[]): void => {
 
 export const createUser = (user: Omit<User, 'id' | 'createdAt'>): User => {
   const users = getUsers();
+  
+  // Check if user with this email already exists
+  const existingUser = users.find(u => u.email.toLowerCase() === user.email.toLowerCase());
+  if (existingUser) {
+    throw new Error('User with this email already exists');
+  }
+  
   const newUser: User = {
     ...user,
     id: `user-${Date.now()}`,
