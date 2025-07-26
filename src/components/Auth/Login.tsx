@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AlertCircle, Loader2, Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { createUser } from '../../utils/supabaseStorage';
 
 type AuthMode = 'login' | 'register';
 
@@ -17,6 +18,7 @@ export const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { user, login, isLoading } = useAuth();
 
   if (user) {
@@ -37,6 +39,7 @@ export const Login: React.FC = () => {
   const switchMode = (mode: AuthMode) => {
     setAuthMode(mode);
     resetForm();
+    setIsSubmitting(false);
   };
 
   const validateForm = (): boolean => {
@@ -73,20 +76,50 @@ export const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsSubmitting(true);
 
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      setIsSubmitting(false);
+      return;
+    }
 
-    if (authMode === 'login') {
-      const success = await login(formData.email, formData.password);
-      if (!success) {
-        setError('Neplatné přihlašovací údaje nebo neaktivní účet.');
+    try {
+      if (authMode === 'login') {
+        const success = await login(formData.email, formData.password);
+        if (!success) {
+          setError('Neplatné přihlašovací údaje nebo neaktivní účet.');
+        }
+      } else {
+        // Registration
+        await createUser({
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          email: formData.email.trim(),
+          password: formData.password,
+          role: 'employee',
+          hourlyRate: 450,
+          monthlyDeductions: 8500
+        });
+
+        // After successful registration, try to login
+        const success = await login(formData.email, formData.password);
+        if (!success) {
+          setError('Registrace byla úspěšná, ale přihlášení se nezdařilo. Zkuste se přihlásit znovu.');
+        }
       }
-    } else {
-      // Registration logic would go here
-      // For now, we'll show a message that registration is not implemented
-      setError('Registrace není zatím implementována. Použijte testovací účty.');
+    } catch (error: any) {
+      console.error('Auth error:', error);
+      if (authMode === 'register') {
+        setError('Registrace se nezdařila. Možná už účet s tímto emailem existuje.');
+      } else {
+        setError('Přihlášení se nezdařilo. Zkuste to znovu.');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  const currentLoading = isLoading || isSubmitting;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
@@ -129,6 +162,7 @@ export const Login: React.FC = () => {
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                       className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Jan"
+                      disabled={currentLoading}
                     />
                   </div>
                 </div>
@@ -147,6 +181,7 @@ export const Login: React.FC = () => {
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                       className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="Novák"
+                      disabled={currentLoading}
                     />
                   </div>
                 </div>
@@ -168,6 +203,7 @@ export const Login: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="vas.email@firma.cz"
+                  disabled={currentLoading}
                 />
               </div>
             </div>
@@ -187,11 +223,13 @@ export const Login: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Zadejte heslo"
+                  disabled={currentLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  disabled={currentLoading}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -214,11 +252,13 @@ export const Login: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                     className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Potvrďte heslo"
+                    disabled={currentLoading}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    disabled={currentLoading}
                   >
                     {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -228,10 +268,10 @@ export const Login: React.FC = () => {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={currentLoading}
               className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
             >
-              {isLoading ? (
+              {currentLoading ? (
                 <>
                   <Loader2 className="animate-spin -ml-1 mr-2 h-4 w-4" />
                   {authMode === 'login' ? 'Přihlašování...' : 'Registrování...'}
@@ -259,6 +299,7 @@ export const Login: React.FC = () => {
                   <button
                     onClick={() => switchMode('register')}
                     className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200"
+                    disabled={currentLoading}
                   >
                     Registrujte se zde
                   </button>
@@ -269,6 +310,7 @@ export const Login: React.FC = () => {
                   <button
                     onClick={() => switchMode('login')}
                     className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200"
+                    disabled={currentLoading}
                   >
                     Přihlaste se zde
                   </button>
