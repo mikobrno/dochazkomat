@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Clock, Edit2, Trash2, Calendar, Save, X, Users, DollarSign, Filter, Download } from 'lucide-react';
+import { Clock, Edit2, Trash2, Calendar, Save, X, Users, Banknote, Filter, Download } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getTimeEntries, getProjects, deleteTimeEntry, updateTimeEntry, getUsers, calculateGrossSalary, exportToCSV } from '../../utils/supabaseStorage';
 import { format } from 'date-fns';
@@ -327,7 +327,7 @@ export const TimeHistory: React.FC = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="p-2 bg-emerald-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-emerald-600" />
+              <Banknote className="h-6 w-6 text-emerald-600" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Celkové náklady</p>

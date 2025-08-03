@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, UserCheck, DollarSign, Mail } from 'lucide-react';
+import { Plus, Edit2, Trash2, UserCheck, Banknote, Mail } from 'lucide-react';
 import { getUsers, deleteUser } from '../../utils/supabaseStorage';
 import { User } from '../../types';
 import { EmployeeModal } from './EmployeeModal';
@@ -98,7 +98,7 @@ export const EmployeeManagement: React.FC = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="p-2 bg-emerald-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-emerald-600" />
+              <Banknote className="h-6 w-6 text-emerald-600" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Průměrná hodinová sazba</p>
@@ -115,7 +115,7 @@ export const EmployeeManagement: React.FC = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="p-2 bg-amber-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-amber-600" />
+              <Banknote className="h-6 w-6 text-amber-600" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Celkové odvody</p>

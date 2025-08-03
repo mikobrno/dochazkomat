@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Clock, DollarSign, Calendar, TrendingUp, ArrowLeft, ArrowRight, Filter, Building2 } from 'lucide-react';
+import { Clock, Banknote, Calendar, TrendingUp, ArrowLeft, ArrowRight, Filter, Building2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getTimeEntries, getProjects, calculateGrossSalary, calculateNetSalary } from '../../utils/supabaseStorage';
 import { getSettings } from '../../utils/storage';
@@ -215,7 +215,7 @@ export const Dashboard: React.FC = () => {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center">
               <div className="p-2 bg-emerald-100 rounded-lg">
-                <DollarSign className="h-6 w-6 text-emerald-600" />
+                <Banknote className="h-6 w-6 text-emerald-600" />
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Hrubá mzda (s příspěvky)</p>
@@ -434,7 +434,7 @@ export const Dashboard: React.FC = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="p-2 bg-emerald-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-emerald-600" />
+              <Banknote className="h-6 w-6 text-emerald-600" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Aktivní zaměstnanci</p>

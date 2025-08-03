@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Users, Clock, DollarSign, TrendingUp } from 'lucide-react';
+import { Users, Clock, Banknote, TrendingUp } from 'lucide-react';
 import { getUsers, getTimeEntries, getSettings, calculateGrossSalary } from '../../utils/storage';
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -100,7 +100,7 @@ export const AdminDashboard: React.FC = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="p-2 bg-amber-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-amber-600" />
+              <Banknote className="h-6 w-6 text-amber-600" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Náklady tento měsíc</p>

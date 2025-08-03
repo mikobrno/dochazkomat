@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { BarChart3, Download, Calendar, DollarSign, Clock } from 'lucide-react';
+import { BarChart3, Download, Calendar, Banknote, Clock } from 'lucide-react';
 import { getUsers, getTimeEntries, getSettings, calculateGrossSalary, exportToCSV } from '../../utils/storage'; // Import storage functions
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from 'date-fns'; // Date utility functions
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -198,7 +198,7 @@ export const Reports: React.FC = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="p-2 bg-emerald-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-emerald-600" />
+              <Banknote className="h-6 w-6 text-emerald-600" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Celkové náklady</p>

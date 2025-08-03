@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Settings as SettingsIcon, Building2, DollarSign, Clock } from 'lucide-react';
+import { Save, Settings as SettingsIcon, Building2, Banknote, Clock } from 'lucide-react';
 import { getSettings, saveSettings } from '../../utils/storage'; // Import storage functions
 import { Settings as SettingsType } from '../../types';
 
@@ -155,7 +155,7 @@ export const Settings: React.FC = () => {
           {/* Tax and Insurance Rates */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <DollarSign className="h-5 w-5 text-gray-600" />
+              <Banknote className="h-5 w-5 text-gray-600" />
               <h3 className="text-base font-medium text-gray-900">Daňové a pojistné sazby</h3>
             </div>
             
