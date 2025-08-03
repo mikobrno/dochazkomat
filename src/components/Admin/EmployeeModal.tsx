@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, User } from 'lucide-react';
-import { User as UserType } from '../../types';
 import { createUser, updateUser, getUsers } from '../../utils/supabaseStorage';
 
 interface EmployeeModalProps {
@@ -71,19 +70,29 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
       newErrors.lastName = 'Příjmení je povinné';
     }
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email je povinný';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email není ve správném formátu';
-    } else {
-      // Kontrola duplicitního emailu
-      // Note: This validation will be done on the server side with Supabase
-    }
+    // Email a heslo jsou povinné pouze při vytváření nového zaměstnance
+    if (!editingId) {
+      if (!formData.email.trim()) {
+        newErrors.email = 'Email je povinný';
+      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+        newErrors.email = 'Email není ve správném formátu';
+      }
 
-    if (!formData.password.trim()) {
-      newErrors.password = 'Heslo je povinné';
-    } else if (formData.password.length < 4) {
-      newErrors.password = 'Heslo musí mít alespoň 4 znaky';
+      if (!formData.password.trim()) {
+        newErrors.password = 'Heslo je povinné';
+      } else if (formData.password.length < 4) {
+        newErrors.password = 'Heslo musí mít alespoň 4 znaky';
+      }
+    } else {
+      // Při editaci validujeme email pouze pokud je vyplněn
+      if (formData.email.trim() && !/\S+@\S+\.\S+/.test(formData.email)) {
+        newErrors.email = 'Email není ve správném formátu';
+      }
+      
+      // Při editaci validujeme heslo pouze pokud je vyplněno
+      if (formData.password.trim() && formData.password.length < 4) {
+        newErrors.password = 'Heslo musí mít alespoň 4 znaky';
+      }
     }
 
     if (formData.hourlyRate <= 0) {
@@ -106,20 +115,27 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      const userData = {
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        email: formData.email.trim(),
-        password: formData.password,
-        role: 'employee' as const,
-        hourlyRate: formData.hourlyRate,
-        monthlyDeductions: formData.monthlyDeductions,
-        isActive: true
-      };
-
       if (editingId) {
+        // Při editaci posíláme pouze údaje, které se mohou editovat
+        const userData = {
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          hourlyRate: formData.hourlyRate,
+          monthlyDeductions: formData.monthlyDeductions,
+        };
         await updateUser(editingId, userData);
       } else {
+        // Při vytváření nového zaměstnance posíláme všechny údaje
+        const userData = {
+          firstName: formData.firstName.trim(),
+          lastName: formData.lastName.trim(),
+          email: formData.email.trim(),
+          password: formData.password,
+          role: 'employee' as const,
+          hourlyRate: formData.hourlyRate,
+          monthlyDeductions: formData.monthlyDeductions,
+          isActive: true
+        };
         await createUser(userData);
       }
 
@@ -155,6 +171,7 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
               </div>
               <button
                 onClick={onClose}
+                title="Zavřít"
                 className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
               >
                 <X className="h-5 w-5" />
@@ -214,8 +231,14 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
                     errors.email ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="jan.novak@firma.cz"
+                  disabled={!!editingId}
                 />
                 {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
+                {editingId && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Email se nastavuje přímo v Supabase Auth
+                  </p>
+                )}
               </div>
 
               <div>
@@ -230,8 +253,14 @@ export const EmployeeModal: React.FC<EmployeeModalProps> = ({
                     errors.password ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="Zadejte heslo"
+                  disabled={!!editingId}
                 />
                 {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password}</p>}
+                {editingId && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Heslo se nastavuje přímo v Supabase Auth
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

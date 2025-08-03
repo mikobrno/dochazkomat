@@ -308,19 +308,6 @@ export const Login: React.FC = () => {
               )}
             </div>
           </div>
-
-          {authMode === 'login' && (
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <div className="text-sm text-gray-500 space-y-2">
-                <p className="font-medium">Testovací účty:</p>
-                <div className="space-y-1">
-                  <p><strong>Admin:</strong> admin@firma.cz / admin123</p>
-                  <p><strong>Jan Novák:</strong> jan.novak@firma.cz / heslo123</p>
-                  <p><strong>Marie Svobodová:</strong> marie.svobodova@firma.cz / heslo123</p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
