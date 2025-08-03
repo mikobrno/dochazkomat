@@ -120,12 +120,12 @@ export const Login: React.FC = () => {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="mx-auto h-16 w-16 rounded-full flex items-center justify-center mb-4 bg-transparent">
-            <img src="/paw-logo.png" alt="Agent pac logo" className="h-16 w-16 object-contain" />
+            <img src="/paw-orange.svg" alt="Agent pac logo" className="h-16 w-16 object-contain" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-3xl font-bold text-gray-900">
             Agent pac
           </h2>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+          <p className="mt-2 text-sm text-gray-600">
             {authMode === 'login' ? 'Přihlaste se do svého účtu' : 'Vytvořte si nový účet'}
           </p>
         </div>
@@ -288,7 +288,7 @@ export const Login: React.FC = () => {
 
             <div className="mt-6 text-center">
               {authMode === 'login' ? (
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="text-sm text-gray-600">
                   Nemáte účet?{' '}
                   <button
                     onClick={() => switchMode('register')}
@@ -299,7 +299,7 @@ export const Login: React.FC = () => {
                   </button>
                 </p>
               ) : (
-                <p className="text-sm text-gray-600 dark:text-gray-300">
+                <p className="text-sm text-gray-600">
                   Již máte účet?{' '}
                   <button
                     onClick={() => switchMode('login')}
