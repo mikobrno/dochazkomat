@@ -11,7 +11,7 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+    <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
@@ -21,7 +21,7 @@ export const Header: React.FC = () => {
           </div>
           
           <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700">
+            <div className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-gray-50">
               <User className="h-4 w-4 text-gray-600 dark:text-gray-300" />
               <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
                 {user?.role === 'admin' ? 'Administrátor' : 'Zaměstnanec'}

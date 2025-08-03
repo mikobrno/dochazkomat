@@ -30,7 +30,7 @@ export const Sidebar: React.FC = () => {
   );
 
   return (
-    <div className="w-64 bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700">
+    <div className="w-64 bg-white shadow-lg border-r border-gray-200">
       <div className="p-6 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-3">
           <div className="p-2 bg-amber-600 rounded-lg">
@@ -52,7 +52,7 @@ export const Sidebar: React.FC = () => {
               className={({ isActive }) =>
                 `group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                   isActive
-                    ? 'bg-amber-50 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 border-r-2 border-amber-600'
+                    ? 'bg-amber-50 text-amber-700 border-r-2 border-amber-600'
                     : 'text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                 }`
               }

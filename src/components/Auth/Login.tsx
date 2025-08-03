@@ -119,8 +119,8 @@ export const Login: React.FC = () => {
       </div>
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-amber-600 rounded-full flex items-center justify-center mb-4">
-            <User className="h-8 w-8 text-white" />
+          <div className="mx-auto h-16 w-16 rounded-full flex items-center justify-center mb-4 bg-transparent">
+            <img src="/paw-logo.png" alt="Agent pac logo" className="h-16 w-16 object-contain" />
           </div>
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
             Agent pac
@@ -130,7 +130,7 @@ export const Login: React.FC = () => {
           </p>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
+        <div className="bg-white rounded-xl shadow-lg p-8">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
               <div className="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-lg">
