@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Paw pad (main pad) -->
+  <path d="M8 18c0-2.5 2-4.5 4-4.5s4 2 4 4.5-2 4.5-4 4.5-4-2-4-4.5Z" fill="#f59e0b" stroke="#d97706"/>
+  
+  <!-- Top left toe -->
+  <circle cx="6" cy="8" r="2" fill="#f59e0b" stroke="#d97706"/>
+  
+  <!-- Top right toe -->
+  <circle cx="18" cy="8" r="2" fill="#f59e0b" stroke="#d97706"/>
+  
+  <!-- Middle left toe -->
+  <circle cx="4" cy="12" r="1.5" fill="#f59e0b" stroke="#d97706"/>
+  
+  <!-- Middle right toe -->
+  <circle cx="20" cy="12" r="1.5" fill="#f59e0b" stroke="#d97706"/>
+</svg>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AlertCircle, Loader2, Eye, EyeOff, User, Mail, Lock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { ThemeToggle } from '../Common/ThemeToggle';
 
 type AuthMode = 'login' | 'register';
 
@@ -112,21 +113,24 @@ export const Login: React.FC = () => {
   const currentLoading = isLoading || isSubmitting;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center px-4 relative">
+      <div className="absolute top-4 right-4">
+        <ThemeToggle />
+      </div>
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <div className="mx-auto h-16 w-16 bg-blue-600 rounded-full flex items-center justify-center mb-4">
+          <div className="mx-auto h-16 w-16 bg-amber-600 rounded-full flex items-center justify-center mb-4">
             <User className="h-8 w-8 text-white" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">
-            Evidence docházky
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Agent pac
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
             {authMode === 'login' ? 'Přihlaste se do svého účtu' : 'Vytvořte si nový účet'}
           </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-8">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
               <div className="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -150,7 +154,7 @@ export const Login: React.FC = () => {
                       required={authMode === 'register'}
                       value={formData.firstName}
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                      className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                       placeholder="Jan"
                       disabled={currentLoading}
                     />
@@ -169,7 +173,7 @@ export const Login: React.FC = () => {
                       required={authMode === 'register'}
                       value={formData.lastName}
                       onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                      className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                       placeholder="Novák"
                       disabled={currentLoading}
                     />
@@ -191,7 +195,7 @@ export const Login: React.FC = () => {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                   placeholder="vas.email@firma.cz"
                   disabled={currentLoading}
                 />
@@ -211,7 +215,7 @@ export const Login: React.FC = () => {
                   required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                   placeholder="Zadejte heslo"
                   disabled={currentLoading}
                 />
@@ -240,7 +244,7 @@ export const Login: React.FC = () => {
                     required={authMode === 'register'}
                     value={formData.confirmPassword}
                     onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                     placeholder="Potvrďte heslo"
                     disabled={currentLoading}
                   />
@@ -259,7 +263,7 @@ export const Login: React.FC = () => {
             <button
               type="submit"
               disabled={currentLoading}
-              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+              className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
             >
               {currentLoading ? (
                 <>
@@ -284,22 +288,22 @@ export const Login: React.FC = () => {
 
             <div className="mt-6 text-center">
               {authMode === 'login' ? (
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
                   Nemáte účet?{' '}
                   <button
                     onClick={() => switchMode('register')}
-                    className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200"
+                    className="font-medium text-amber-600 hover:text-amber-500 transition-colors duration-200"
                     disabled={currentLoading}
                   >
                     Registrujte se zde
                   </button>
                 </p>
               ) : (
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
                   Již máte účet?{' '}
                   <button
                     onClick={() => switchMode('login')}
-                    className="font-medium text-blue-600 hover:text-blue-500 transition-colors duration-200"
+                    className="font-medium text-amber-600 hover:text-amber-500 transition-colors duration-200"
                     disabled={currentLoading}
                   >
                     Přihlaste se zde
