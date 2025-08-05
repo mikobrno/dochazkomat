@@ -9,6 +9,7 @@ import {
 } from '../../utils/supabaseStorage';
 import { format } from 'date-fns';
 import { TimeEntryModal } from './TimeEntryModal';
+import { TimeEntry, User } from '../../types';
 
 export const TimesheetView: React.FC = () => {
   const { user } = useAuth();
@@ -16,13 +17,11 @@ export const TimesheetView: React.FC = () => {
   const [editingEntry, setEditingEntry] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [selectedEmployee, setSelectedEmployee] = useState<string>('all');
-  const [timeEntries, setTimeEntries] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   React.useEffect(() => {
     const loadData = async () => {
-      setLoading(true);
       try {
         const [entriesData, usersData] = await Promise.all([
           getTimeEntries(),
@@ -32,8 +31,6 @@ export const TimesheetView: React.FC = () => {
         setUsers(usersData);
       } catch (error) {
         console.error('Error loading data:', error);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -64,7 +61,7 @@ export const TimesheetView: React.FC = () => {
     return entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [timeEntries, user, selectedMonth, selectedEmployee]);
 
-  const totalHours = filteredEntries.reduce((sum, entry) => sum + entry.hoursWorked, 0);
+  const totalHours = filteredEntries.reduce((sum, entry) => sum + Number(entry.hoursWorked || 0), 0);
   const selectedEmployeeData = selectedEmployee !== 'all' ? users.find(u => u.id === selectedEmployee) : null;
 
   const handleDelete = async (id: string) => {
@@ -82,11 +79,11 @@ export const TimesheetView: React.FC = () => {
         Employee: entryUser?.name || 'Unknown',
         'Start Time': entry.startTime,
         'End Time': entry.endTime,
-        'Hours Worked': entry.hoursWorked,
+        'Hours Worked': Number(entry.hoursWorked || 0),
         Project: entry.projectName,
         Description: entry.description,
-        'Hourly Rate': entryUser?.hourlyRate || 0,
-        'Total Cost': ((entryUser?.hourlyRate || 0) * entry.hoursWorked)
+        'Hourly Rate': Number(entryUser?.hourlyRate || 0),
+        'Total Cost': (Number(entryUser?.hourlyRate || 0) * Number(entry.hoursWorked || 0))
       };
     });
 
@@ -105,14 +102,22 @@ export const TimesheetView: React.FC = () => {
 
         <div className="flex flex-col sm:flex-row gap-3">
           <input
-            type="month"
+            type="text"
+            title="Vyberte měsíc"
+            placeholder="YYYY-MM"
             value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (/^\d{4}-\d{2}$/.test(value)) {
+                setSelectedMonth(value);
+              }
+            }}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           
           {user?.role === 'admin' && (
             <select
+              title="Vyberte zaměstnance"
               value={selectedEmployee}
               onChange={(e) => setSelectedEmployee(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -128,6 +133,7 @@ export const TimesheetView: React.FC = () => {
           
           <div className="flex gap-3">
             <button
+              title="Exportovat data"
               onClick={handleExport}
               disabled={filteredEntries.length === 0}
               className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
@@ -275,12 +281,14 @@ export const TimesheetView: React.FC = () => {
                               setIsModalOpen(true);
                             }}
                             className="text-blue-600 hover:text-blue-900 transition-colors duration-200"
+                            title="Upravit záznam"
                           >
                             <Edit2 className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDelete(entry.id)}
                             className="text-red-600 hover:text-red-900 transition-colors duration-200"
+                            title="Smazat záznam"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>

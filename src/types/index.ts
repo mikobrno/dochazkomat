@@ -2,6 +2,7 @@ export interface User {
   id: string;
   firstName: string;
   lastName: string;
+  name: string; // Přidání vlastnosti name jako kombinace firstName a lastName
   email: string;
   password: string;
   role: 'admin' | 'employee';
@@ -26,6 +27,7 @@ export interface TimeEntry {
   endTime: string;
   hoursWorked: number;
   projectId: string;
+  projectName: string; // Přidání vlastnosti projectName
   description?: string;
   createdAt: string;
 }

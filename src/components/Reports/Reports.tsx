@@ -28,10 +28,10 @@ export const Reports: React.FC = () => {
         return entryDate >= monthStart && entryDate <= monthEnd;
       });
 
-      const totalHours = monthEntries.reduce((sum, entry) => sum + entry.hoursWorked, 0);
+      const totalHours = monthEntries.reduce((sum, entry) => sum + Number(entry.hoursWorked || 0), 0);
       const totalCost = monthEntries.reduce((sum, entry) => {
         const user = users.find(u => u.id === entry.userId);
-        return user ? sum + calculateGrossSalary(entry.hoursWorked, user.hourlyRate) : sum;
+        return user ? sum + calculateGrossSalary(Number(entry.hoursWorked || 0), Number(user.hourlyRate || 0)) : sum;
       }, 0);
 
       return {
