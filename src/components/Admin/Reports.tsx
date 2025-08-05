@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Download, Filter, BarChart3, Users, Building2, Calendar } from 'lucide-react';
-import { getUsers, getTimeEntries, getProjects, calculateGrossSalary, exportToCSV } from '../../utils/supabaseStorage';
+import { getUsers, getTimeEntries, getProjects, exportToCSV } from '../../utils/supabaseStorage';
 import { getSettings } from '../../utils/storage';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 
@@ -73,14 +73,29 @@ export const Reports: React.FC = () => {
     entries = entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     const totalHours = entries.reduce((sum, entry) => sum + Number(entry.hoursWorked || 0), 0);
-    const totalCost = entries.reduce((sum, entry) => {
+    
+    // Výpočet čisté mzdy (hodiny × sazba)
+    const totalNetSalary = entries.reduce((sum, entry) => {
       const user = users.find(u => u.id === entry.userId);
-      return user ? sum + calculateGrossSalary(Number(entry.hoursWorked || 0), Number(user.hourlyRate || 0)) : sum;
+      const hours = Number(entry.hoursWorked || 0);
+      const hourlyRate = Number(user?.hourlyRate || 0);
+      return sum + (hours * hourlyRate);
     }, 0);
+    
+    // Výpočet odvodů (použijeme monthlyDeductions z uživatele)
+    const totalDeductions = entries.reduce((sum, entry) => {
+      const user = users.find(u => u.id === entry.userId);
+      return user ? sum + Number(user.monthlyDeductions || 0) : sum;
+    }, 0);
+    
+    // Celkové náklady = čistá mzda + odvody
+    const totalCost = totalNetSalary + totalDeductions;
 
     return {
       entries,
       totalHours,
+      totalNetSalary,
+      totalDeductions,
       totalCost,
       uniqueEmployees: [...new Set(entries.map(e => e.userId))].length,
       uniqueProjects: [...new Set(entries.map(e => e.projectId))].length
@@ -93,7 +108,9 @@ export const Reports: React.FC = () => {
       const project = projects.find(p => p.id === entry.projectId);
       const hoursWorked = Number(entry.hoursWorked || 0);
       const hourlyRate = Number(user?.hourlyRate || 0);
-      const cost = calculateGrossSalary(hoursWorked, hourlyRate);
+      const monthlyDeductions = Number(user?.monthlyDeductions || 0);
+      const netSalary = hoursWorked * hourlyRate;
+      const totalCost = netSalary + monthlyDeductions;
 
       return {
         'Datum': format(new Date(entry.date), 'dd.MM.yyyy'),
@@ -102,7 +119,9 @@ export const Reports: React.FC = () => {
         'Projekt': project?.name || 'Neznámý projekt',
         'Hodiny': hoursWorked,
         'Hodinová sazba': hourlyRate,
-        'Celková cena': cost,
+        'Čistá mzda': netSalary,
+        'Odvody': monthlyDeductions,
+        'Celkové náklady': totalCost,
         'Popis': entry.description || ''
       };
     });
@@ -208,7 +227,7 @@ export const Reports: React.FC = () => {
       </div>
 
       {/* Souhrn */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -217,6 +236,34 @@ export const Reports: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Celkem hodin</p>
               <p className="text-2xl font-bold text-gray-900">{filteredData.totalHours}h</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Users className="h-6 w-6 text-green-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Čistá mzda</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {filteredData.totalNetSalary.toLocaleString('cs-CZ')} Kč
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <Building2 className="h-6 w-6 text-orange-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Odvody</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {filteredData.totalDeductions.toLocaleString('cs-CZ')} Kč
+              </p>
             </div>
           </div>
         </div>
@@ -258,21 +305,6 @@ export const Reports: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* Employer Contributions Summary */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-indigo-100 rounded-lg">
-              <Building2 className="h-6 w-6 text-indigo-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Příspěvky zaměstnavatele</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {(filteredData.totalCost * 0.338).toLocaleString('cs-CZ')} Kč
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Detailed Employer Contributions Section */}
@@ -290,7 +322,7 @@ export const Reports: React.FC = () => {
               <p className="text-sm font-medium text-blue-700">Sociální pojištění</p>
               <p className="text-xl font-bold text-blue-900">{settings.socialInsuranceRate}%</p>
               <p className="text-sm text-blue-600">
-                {(filteredData.totalCost * settings.socialInsuranceRate / 100).toLocaleString('cs-CZ')} Kč
+                {(filteredData.totalDeductions * settings.socialInsuranceRate / (settings.socialInsuranceRate + settings.healthInsuranceRate)).toLocaleString('cs-CZ')} Kč
               </p>
             </div>
           </div>
@@ -300,7 +332,7 @@ export const Reports: React.FC = () => {
               <p className="text-sm font-medium text-green-700">Zdravotní pojištění</p>
               <p className="text-xl font-bold text-green-900">{settings.healthInsuranceRate}%</p>
               <p className="text-sm text-green-600">
-                {(filteredData.totalCost * settings.healthInsuranceRate / 100).toLocaleString('cs-CZ')} Kč
+                {(filteredData.totalDeductions * settings.healthInsuranceRate / (settings.socialInsuranceRate + settings.healthInsuranceRate)).toLocaleString('cs-CZ')} Kč
               </p>
             </div>
           </div>
@@ -312,7 +344,7 @@ export const Reports: React.FC = () => {
                 {((settings.socialInsuranceRate + settings.healthInsuranceRate)).toFixed(1)}%
               </p>
               <p className="text-sm text-purple-600">
-                {(filteredData.totalCost * (settings.socialInsuranceRate + settings.healthInsuranceRate) / 100).toLocaleString('cs-CZ')} Kč
+                {filteredData.totalDeductions.toLocaleString('cs-CZ')} Kč
               </p>
             </div>
           </div>
@@ -359,7 +391,13 @@ export const Reports: React.FC = () => {
                     Hodiny
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Náklady
+                    Čistá mzda
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Odvody
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Celkové náklady
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Popis
@@ -372,7 +410,9 @@ export const Reports: React.FC = () => {
                   const project = projects.find(p => p.id === entry.projectId);
                   const hoursWorked = Number(entry.hoursWorked || 0);
                   const hourlyRate = Number(user?.hourlyRate || 0);
-                  const cost = calculateGrossSalary(hoursWorked, hourlyRate);
+                  const monthlyDeductions = Number(user?.monthlyDeductions || 0);
+                  const netSalary = hoursWorked * hourlyRate; // Čistá mzda
+                  const totalCost = netSalary + monthlyDeductions; // Celkové náklady
                   
                   return (
                     <tr key={entry.id} className="hover:bg-gray-50">
@@ -389,7 +429,13 @@ export const Reports: React.FC = () => {
                         {hoursWorked}h
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {cost.toLocaleString('cs-CZ')} Kč
+                        {netSalary.toLocaleString('cs-CZ')} Kč
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {monthlyDeductions.toLocaleString('cs-CZ')} Kč
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {totalCost.toLocaleString('cs-CZ')} Kč
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
                         {entry.description || '-'}
