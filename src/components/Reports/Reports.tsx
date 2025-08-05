@@ -1,15 +1,39 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { BarChart3, Download, Calendar, Banknote, Clock } from 'lucide-react';
-import { getUsers, getTimeEntries, getSettings, calculateGrossSalary, exportToCSV } from '../../utils/storage'; // Import storage functions
+import { getUsers, getTimeEntries, calculateGrossSalary, exportToCSV } from '../../utils/supabaseStorage'; // Changed to supabaseStorage
+import { getSettings } from '../../utils/storage'; // Keep getSettings from localStorage
 import { format, startOfMonth, endOfMonth, eachMonthOfInterval, subMonths } from 'date-fns'; // Date utility functions
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { User, TimeEntry } from '../../types';
 
 export const Reports: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('6months');
-  
-  const users = getUsers();
-  const timeEntries = getTimeEntries();
-  const settings = getSettings();
+  const [users, setUsers] = useState<User[]>([]);
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const settings = getSettings(); // Get settings from localStorage
+
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const [usersData, entriesData] = await Promise.all([
+          getUsers(),
+          getTimeEntries()
+        ]);
+        setUsers(usersData);
+        setTimeEntries(entriesData);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
   const employees = users.filter(u => u.role === 'employee');
 
   const periodData = useMemo(() => {
@@ -46,15 +70,15 @@ export const Reports: React.FC = () => {
   const employeeData = useMemo(() => {
     return employees.map(employee => {
       const employeeEntries = timeEntries.filter(entry => entry.userId === employee.id);
-      const totalHours = employeeEntries.reduce((sum, entry) => sum + entry.hoursWorked, 0);
-      const totalCost = calculateGrossSalary(totalHours, employee.hourlyRate);
+      const totalHours = employeeEntries.reduce((sum, entry) => sum + Number(entry.hoursWorked || 0), 0);
+      const totalCost = calculateGrossSalary(totalHours, Number(employee.hourlyRate || 0));
 
       return {
         firstName: employee.firstName,
         lastName: employee.lastName,
         hours: totalHours,
         cost: Math.round(totalCost),
-        hourlyRate: employee.hourlyRate,
+        hourlyRate: Number(employee.hourlyRate || 0),
         entries: employeeEntries.length
       };
     }).sort((a, b) => b.cost - a.cost);
@@ -67,20 +91,22 @@ export const Reports: React.FC = () => {
       const user = users.find(u => u.id === entry.userId);
       if (!user) return;
       
-      const cost = calculateGrossSalary(entry.hoursWorked, user.hourlyRate);
+      const hoursWorked = Number(entry.hoursWorked || 0);
+      const hourlyRate = Number(user.hourlyRate || 0);
+      const cost = calculateGrossSalary(hoursWorked, hourlyRate);
       
       if (projectMap.has(entry.projectName)) {
         const existing = projectMap.get(entry.projectName);
         projectMap.set(entry.projectName, {
           ...existing,
-          hours: existing.hours + entry.hoursWorked,
+          hours: existing.hours + hoursWorked,
           cost: existing.cost + cost,
           entries: existing.entries + 1
         });
       } else {
         projectMap.set(entry.projectName, {
           name: entry.projectName,
-          hours: entry.hoursWorked,
+          hours: hoursWorked,
           cost: Math.round(cost),
           entries: 1
         });

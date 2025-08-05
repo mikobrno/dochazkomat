@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Download, Filter, BarChart3, Users, Building2 } from 'lucide-react';
-import { getUsers, getTimeEntries, getProjects, calculateGrossSalary, exportToCSV } from '../../utils/supabaseStorage';
+import { Download, Filter, BarChart3, Users, Building2, Calendar } from 'lucide-react';
+import { getUsers, getTimeEntries, getProjects, exportToCSV } from '../../utils/supabaseStorage';
 import { getSettings } from '../../utils/storage';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 
 export const Reports: React.FC = () => {
   const [filters, setFilters] = useState({
@@ -40,6 +40,19 @@ export const Reports: React.FC = () => {
 
   const employees = users.filter(u => u.role === 'employee' && u.isActive);
 
+  // Funkce pro nastavení aktuálního měsíce
+  const setCurrentMonth = () => {
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    
+    setFilters({
+      ...filters,
+      startDate: format(monthStart, 'yyyy-MM-dd'),
+      endDate: format(monthEnd, 'yyyy-MM-dd')
+    });
+  };
+
   const filteredData = useMemo(() => {
     let entries = timeEntries;
 
@@ -59,15 +72,30 @@ export const Reports: React.FC = () => {
     // Seřadit podle data
     entries = entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0);
-    const totalCost = entries.reduce((sum, entry) => {
+    const totalHours = entries.reduce((sum, entry) => sum + Number(entry.hoursWorked || 0), 0);
+    
+    // Výpočet čisté mzdy (hodiny × sazba)
+    const totalNetSalary = entries.reduce((sum, entry) => {
       const user = users.find(u => u.id === entry.userId);
-      return user ? sum + calculateGrossSalary(entry.hours, user.hourlyRate) : sum;
+      const hours = Number(entry.hoursWorked || 0);
+      const hourlyRate = Number(user?.hourlyRate || 0);
+      return sum + (hours * hourlyRate);
     }, 0);
+    
+    // Výpočet odvodů (použijeme monthlyDeductions z uživatele)
+    const totalDeductions = entries.reduce((sum, entry) => {
+      const user = users.find(u => u.id === entry.userId);
+      return user ? sum + Number(user.monthlyDeductions || 0) : sum;
+    }, 0);
+    
+    // Celkové náklady = čistá mzda + odvody
+    const totalCost = totalNetSalary + totalDeductions;
 
     return {
       entries,
       totalHours,
+      totalNetSalary,
+      totalDeductions,
       totalCost,
       uniqueEmployees: [...new Set(entries.map(e => e.userId))].length,
       uniqueProjects: [...new Set(entries.map(e => e.projectId))].length
@@ -78,16 +106,22 @@ export const Reports: React.FC = () => {
     const exportData = filteredData.entries.map(entry => {
       const user = users.find(u => u.id === entry.userId);
       const project = projects.find(p => p.id === entry.projectId);
-      const cost = user ? calculateGrossSalary(entry.hours, user.hourlyRate) : 0;
+      const hoursWorked = Number(entry.hoursWorked || 0);
+      const hourlyRate = Number(user?.hourlyRate || 0);
+      const monthlyDeductions = Number(user?.monthlyDeductions || 0);
+      const netSalary = hoursWorked * hourlyRate;
+      const totalCost = netSalary + monthlyDeductions;
 
       return {
         'Datum': format(new Date(entry.date), 'dd.MM.yyyy'),
         'Zaměstnanec': user ? `${user.firstName} ${user.lastName}` : 'Neznámý',
         'Email': user?.email || '',
         'Projekt': project?.name || 'Neznámý projekt',
-        'Hodiny': entry.hours,
-        'Hodinová sazba': user?.hourlyRate || 0,
-        'Celková cena': cost,
+        'Hodiny': hoursWorked,
+        'Hodinová sazba': hourlyRate,
+        'Čistá mzda': netSalary,
+        'Odvody': monthlyDeductions,
+        'Celkové náklady': totalCost,
         'Popis': entry.description || ''
       };
     });
@@ -131,6 +165,7 @@ export const Reports: React.FC = () => {
               Zaměstnanec
             </label>
             <select
+              title="Vyberte zaměstnance"
               value={filters.employeeId}
               onChange={(e) => setFilters({ ...filters, employeeId: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -150,6 +185,8 @@ export const Reports: React.FC = () => {
             </label>
             <input
               type="date"
+              title="Vyberte počáteční datum"
+              placeholder="YYYY-MM-DD"
               value={filters.startDate}
               onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -162,16 +199,35 @@ export const Reports: React.FC = () => {
             </label>
             <input
               type="date"
+              title="Vyberte koncové datum"
+              placeholder="YYYY-MM-DD"
               value={filters.endDate}
               onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
+
+        {/* Rychlé filtry */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            onClick={setCurrentMonth}
+            className="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors duration-200"
+          >
+            <Calendar className="h-4 w-4" />
+            <span>Aktuální měsíc</span>
+          </button>
+          <button
+            onClick={() => setFilters({ ...filters, startDate: '', endDate: '' })}
+            className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+          >
+            Všechna data
+          </button>
+        </div>
       </div>
 
       {/* Souhrn */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center">
             <div className="p-2 bg-blue-100 rounded-lg">
@@ -180,6 +236,34 @@ export const Reports: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Celkem hodin</p>
               <p className="text-2xl font-bold text-gray-900">{filteredData.totalHours}h</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Users className="h-6 w-6 text-green-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Čistá mzda</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {filteredData.totalNetSalary.toLocaleString('cs-CZ')} Kč
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <Building2 className="h-6 w-6 text-orange-600" />
+            </div>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-600">Odvody</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {filteredData.totalDeductions.toLocaleString('cs-CZ')} Kč
+              </p>
             </div>
           </div>
         </div>
@@ -221,21 +305,6 @@ export const Reports: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* Employer Contributions Summary */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="p-2 bg-indigo-100 rounded-lg">
-              <Building2 className="h-6 w-6 text-indigo-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Příspěvky zaměstnavatele</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {(filteredData.totalCost * 0.338).toLocaleString('cs-CZ')} Kč
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Detailed Employer Contributions Section */}
@@ -253,7 +322,7 @@ export const Reports: React.FC = () => {
               <p className="text-sm font-medium text-blue-700">Sociální pojištění</p>
               <p className="text-xl font-bold text-blue-900">{settings.socialInsuranceRate}%</p>
               <p className="text-sm text-blue-600">
-                {(filteredData.totalCost * settings.socialInsuranceRate / 100).toLocaleString('cs-CZ')} Kč
+                {(filteredData.totalDeductions * settings.socialInsuranceRate / (settings.socialInsuranceRate + settings.healthInsuranceRate)).toLocaleString('cs-CZ')} Kč
               </p>
             </div>
           </div>
@@ -263,7 +332,7 @@ export const Reports: React.FC = () => {
               <p className="text-sm font-medium text-green-700">Zdravotní pojištění</p>
               <p className="text-xl font-bold text-green-900">{settings.healthInsuranceRate}%</p>
               <p className="text-sm text-green-600">
-                {(filteredData.totalCost * settings.healthInsuranceRate / 100).toLocaleString('cs-CZ')} Kč
+                {(filteredData.totalDeductions * settings.healthInsuranceRate / (settings.socialInsuranceRate + settings.healthInsuranceRate)).toLocaleString('cs-CZ')} Kč
               </p>
             </div>
           </div>
@@ -275,7 +344,7 @@ export const Reports: React.FC = () => {
                 {((settings.socialInsuranceRate + settings.healthInsuranceRate)).toFixed(1)}%
               </p>
               <p className="text-sm text-purple-600">
-                {(filteredData.totalCost * (settings.socialInsuranceRate + settings.healthInsuranceRate) / 100).toLocaleString('cs-CZ')} Kč
+                {filteredData.totalDeductions.toLocaleString('cs-CZ')} Kč
               </p>
             </div>
           </div>
@@ -322,7 +391,13 @@ export const Reports: React.FC = () => {
                     Hodiny
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Náklady
+                    Čistá mzda
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Odvody
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Celkové náklady
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Popis
@@ -333,7 +408,11 @@ export const Reports: React.FC = () => {
                 {filteredData.entries.map((entry) => {
                   const user = users.find(u => u.id === entry.userId);
                   const project = projects.find(p => p.id === entry.projectId);
-                  const cost = user ? calculateGrossSalary(entry.hours, user.hourlyRate) : 0;
+                  const hoursWorked = Number(entry.hoursWorked || 0);
+                  const hourlyRate = Number(user?.hourlyRate || 0);
+                  const monthlyDeductions = Number(user?.monthlyDeductions || 0);
+                  const netSalary = hoursWorked * hourlyRate; // Čistá mzda
+                  const totalCost = netSalary + monthlyDeductions; // Celkové náklady
                   
                   return (
                     <tr key={entry.id} className="hover:bg-gray-50">
@@ -344,13 +423,19 @@ export const Reports: React.FC = () => {
                         {user ? `${user.firstName} ${user.lastName}` : 'Neznámý'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {project?.name || 'Neznámý projekt'}
+                        {project?.name || entry.projectName || 'Neznámý projekt'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {entry.hours}h
+                        {hoursWorked}h
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {cost.toLocaleString('cs-CZ')} Kč
+                        {netSalary.toLocaleString('cs-CZ')} Kč
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {monthlyDeductions.toLocaleString('cs-CZ')} Kč
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {totalCost.toLocaleString('cs-CZ')} Kč
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
                         {entry.description || '-'}
