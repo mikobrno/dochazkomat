@@ -207,7 +207,12 @@ export const updateProject = (id: string, updates: Partial<Project>): Project | 
 // Operace s časovými záznamy
 export const getTimeEntries = (): TimeEntry[] => {
   initializeStorage();
-  return JSON.parse(localStorage.getItem('timeEntries') || '[]');
+  const entries = JSON.parse(localStorage.getItem('timeEntries') || '[]');
+  // Opravíme typ pro hoursWorked (musí být číslo)
+  return entries.map((entry: any) => ({
+    ...entry,
+    hoursWorked: Number(entry.hoursWorked) || 0
+  }));
 };
 
 export const saveTimeEntries = (entries: TimeEntry[]): void => {
