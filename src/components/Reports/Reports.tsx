@@ -91,10 +91,10 @@ export const Reports: React.FC = () => {
   }, [timeEntries, users]);
 
   const totalStats = useMemo(() => {
-    const totalHours = timeEntries.reduce((sum, entry) => sum + entry.hoursWorked, 0);
+    const totalHours = timeEntries.reduce((sum, entry) => sum + Number(entry.hoursWorked || 0), 0);
     const totalCost = timeEntries.reduce((sum, entry) => {
       const user = users.find(u => u.id === entry.userId);
-      return user ? sum + calculateGrossSalary(entry.hoursWorked, user.hourlyRate) : sum;
+      return user ? sum + calculateGrossSalary(Number(entry.hoursWorked || 0), Number(user.hourlyRate || 0)) : sum;
     }, 0);
 
     return {
