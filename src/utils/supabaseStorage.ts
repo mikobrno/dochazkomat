@@ -18,6 +18,7 @@ export const getUsers = async (): Promise<User[]> => {
     id: profile.id,
     firstName: profile.firstName,
     lastName: profile.lastName,
+    name: `${profile.firstName} ${profile.lastName}`, // Add combined name field
     email: '', // Email is managed by Supabase Auth
     password: '', // Password is managed by Supabase Auth
     role: profile.role,
@@ -66,6 +67,7 @@ export const createUser = async (userData: {
     id: authData.user.id,
     firstName: userData.firstName,
     lastName: userData.lastName,
+    name: `${userData.firstName} ${userData.lastName}`,
     email: userData.email,
     password: '', // Don't return password
     role: userData.role,
@@ -100,6 +102,7 @@ export const updateUser = async (id: string, updates: Partial<User>): Promise<Us
     id: data.id,
     firstName: data.firstName,
     lastName: data.lastName,
+    name: `${data.firstName} ${data.lastName}`,
     email: '', // Email is managed by Supabase Auth
     password: '', // Password is managed by Supabase Auth
     role: data.role,
@@ -177,7 +180,10 @@ export const updateProject = async (id: string, updates: Partial<Project>): Prom
 export const getTimeEntries = async (): Promise<TimeEntry[]> => {
   const { data, error } = await supabase
     .from('time_entries')
-    .select('*')
+    .select(`
+      *,
+      projects(name)
+    `)
     .order('date', { ascending: false });
 
   if (error) {
@@ -185,7 +191,19 @@ export const getTimeEntries = async (): Promise<TimeEntry[]> => {
     return [];
   }
 
-  return data || [];
+  // Transform data to match TimeEntry type
+  return (data || []).map(entry => ({
+    id: entry.id,
+    userId: entry.userId,
+    date: entry.date,
+    startTime: entry.startTime,
+    endTime: entry.endTime,
+    hoursWorked: Number(entry.hoursWorked) || 0,
+    projectId: entry.projectId,
+    projectName: entry.projects?.name || 'Unknown Project',
+    description: entry.description,
+    createdAt: entry.createdAt
+  }));
 };
 
 export const createTimeEntry = async (entry: Omit<TimeEntry, 'id' | 'createdAt'>): Promise<TimeEntry | null> => {
@@ -301,6 +319,7 @@ export const authenticateUser = async (email: string, password: string): Promise
         id: newProfile.id,
         firstName: newProfile.firstName,
         lastName: newProfile.lastName,
+        name: `${newProfile.firstName} ${newProfile.lastName}`,
         email: data.user.email || '',
         password: '',
         role: newProfile.role,
@@ -318,6 +337,7 @@ export const authenticateUser = async (email: string, password: string): Promise
     id: profile.id,
     firstName: profile.firstName,
     lastName: profile.lastName,
+    name: `${profile.firstName} ${profile.lastName}`,
     email: data.user.email || '',
     password: '', // Don't return password
     role: profile.role,
@@ -351,6 +371,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
     id: profile.id,
     firstName: profile.firstName,
     lastName: profile.lastName,
+    name: `${profile.firstName} ${profile.lastName}`,
     email: user.email || '',
     password: '', // Don't return password
     role: profile.role,
