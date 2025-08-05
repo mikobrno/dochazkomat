@@ -21,8 +21,8 @@ export const getUsers = async (): Promise<User[]> => {
     email: '', // Email is managed by Supabase Auth
     password: '', // Password is managed by Supabase Auth
     role: profile.role,
-    hourlyRate: profile.hourlyRate,
-    monthlyDeductions: profile.monthlyDeductions,
+    hourlyRate: Number(profile.hourlyRate) || 0,
+    monthlyDeductions: Number(profile.monthlyDeductions) || 0,
     isActive: profile.isActive,
     createdAt: profile.createdAt
   }));
