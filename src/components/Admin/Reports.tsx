@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { Download, Filter, BarChart3, Users, Building2 } from 'lucide-react';
+import { Download, Filter, BarChart3, Users, Building2, Calendar } from 'lucide-react';
 import { getUsers, getTimeEntries, getProjects, calculateGrossSalary, exportToCSV } from '../../utils/supabaseStorage';
 import { getSettings } from '../../utils/storage';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 
 export const Reports: React.FC = () => {
   const [filters, setFilters] = useState({
@@ -40,6 +40,19 @@ export const Reports: React.FC = () => {
 
   const employees = users.filter(u => u.role === 'employee' && u.isActive);
 
+  // Funkce pro nastavení aktuálního měsíce
+  const setCurrentMonth = () => {
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    
+    setFilters({
+      ...filters,
+      startDate: format(monthStart, 'yyyy-MM-dd'),
+      endDate: format(monthEnd, 'yyyy-MM-dd')
+    });
+  };
+
   const filteredData = useMemo(() => {
     let entries = timeEntries;
 
@@ -59,10 +72,10 @@ export const Reports: React.FC = () => {
     // Seřadit podle data
     entries = entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    const totalHours = entries.reduce((sum, entry) => sum + entry.hours, 0);
+    const totalHours = entries.reduce((sum, entry) => sum + Number(entry.hoursWorked || 0), 0);
     const totalCost = entries.reduce((sum, entry) => {
       const user = users.find(u => u.id === entry.userId);
-      return user ? sum + calculateGrossSalary(entry.hours, user.hourlyRate) : sum;
+      return user ? sum + calculateGrossSalary(Number(entry.hoursWorked || 0), Number(user.hourlyRate || 0)) : sum;
     }, 0);
 
     return {
@@ -78,15 +91,17 @@ export const Reports: React.FC = () => {
     const exportData = filteredData.entries.map(entry => {
       const user = users.find(u => u.id === entry.userId);
       const project = projects.find(p => p.id === entry.projectId);
-      const cost = user ? calculateGrossSalary(entry.hours, user.hourlyRate) : 0;
+      const hoursWorked = Number(entry.hoursWorked || 0);
+      const hourlyRate = Number(user?.hourlyRate || 0);
+      const cost = calculateGrossSalary(hoursWorked, hourlyRate);
 
       return {
         'Datum': format(new Date(entry.date), 'dd.MM.yyyy'),
         'Zaměstnanec': user ? `${user.firstName} ${user.lastName}` : 'Neznámý',
         'Email': user?.email || '',
         'Projekt': project?.name || 'Neznámý projekt',
-        'Hodiny': entry.hours,
-        'Hodinová sazba': user?.hourlyRate || 0,
+        'Hodiny': hoursWorked,
+        'Hodinová sazba': hourlyRate,
         'Celková cena': cost,
         'Popis': entry.description || ''
       };
@@ -131,6 +146,7 @@ export const Reports: React.FC = () => {
               Zaměstnanec
             </label>
             <select
+              title="Vyberte zaměstnance"
               value={filters.employeeId}
               onChange={(e) => setFilters({ ...filters, employeeId: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -150,6 +166,8 @@ export const Reports: React.FC = () => {
             </label>
             <input
               type="date"
+              title="Vyberte počáteční datum"
+              placeholder="YYYY-MM-DD"
               value={filters.startDate}
               onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -162,11 +180,30 @@ export const Reports: React.FC = () => {
             </label>
             <input
               type="date"
+              title="Vyberte koncové datum"
+              placeholder="YYYY-MM-DD"
               value={filters.endDate}
               onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+        </div>
+
+        {/* Rychlé filtry */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            onClick={setCurrentMonth}
+            className="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors duration-200"
+          >
+            <Calendar className="h-4 w-4" />
+            <span>Aktuální měsíc</span>
+          </button>
+          <button
+            onClick={() => setFilters({ ...filters, startDate: '', endDate: '' })}
+            className="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200"
+          >
+            Všechna data
+          </button>
         </div>
       </div>
 
@@ -333,7 +370,9 @@ export const Reports: React.FC = () => {
                 {filteredData.entries.map((entry) => {
                   const user = users.find(u => u.id === entry.userId);
                   const project = projects.find(p => p.id === entry.projectId);
-                  const cost = user ? calculateGrossSalary(entry.hours, user.hourlyRate) : 0;
+                  const hoursWorked = Number(entry.hoursWorked || 0);
+                  const hourlyRate = Number(user?.hourlyRate || 0);
+                  const cost = calculateGrossSalary(hoursWorked, hourlyRate);
                   
                   return (
                     <tr key={entry.id} className="hover:bg-gray-50">
@@ -344,10 +383,10 @@ export const Reports: React.FC = () => {
                         {user ? `${user.firstName} ${user.lastName}` : 'Neznámý'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {project?.name || 'Neznámý projekt'}
+                        {project?.name || entry.projectName || 'Neznámý projekt'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {entry.hours}h
+                        {hoursWorked}h
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {cost.toLocaleString('cs-CZ')} Kč
